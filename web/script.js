@@ -20,7 +20,7 @@ function init() {
     context.fillStyle = "#FAFAFA";
     context.fillRect(0, 0, width, height);
 
-    context.drawImage(huhnImage, 200, 100);
+    context.drawImage(huhnImage, width / 2 - huhnImage.naturalWidth / 2, height / 2 - huhnImage.naturalHeight / 2);
 
     // add some first game-like feature: spawn chicken on touch or click or key
     canvas.addEventListener(
