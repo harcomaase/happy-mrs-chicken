@@ -14,6 +14,8 @@ any copyright problems! If there is a problem, please create an issue.
 
 You can spawn chicken by clicking or tapping; the canvas should be the full page.
 
+Try it out here: https://harcomaase.github.io/happy-mrs-chicken/
+
 ## very rough roadmap
 
 Since our customer did not provide a specification sheet for this project, we
