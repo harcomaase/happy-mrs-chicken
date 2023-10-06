@@ -14,3 +14,24 @@ any copyright problems! If there is a problem, please create an issue.
 
 You can spawn chicken by clicking or tapping; the canvas should be the full page.
 
+## very rough roadmap
+
+Since our customer did not provide a specification sheet for this project, we
+choose an agile approach. The plan is to develop a prototype early on, in order
+to give the customer a first impression. After that, they will be
+incorporated into each development cycle, as well as the acceptance tests.
+
+- [x] draw picture on fullscreen canvas
+- [x] draw pictures on input event
+- [ ] browser campatibility (webapp)
+- [ ] sprites / animations
+- [ ] sound
+- [ ] first game mechanics
+  - [ ] lay egg on tap
+  - [ ] move somewhere else
+- [ ] text, debug stats
+- [ ] game state, intro screen, end screen
+- [ ] game mechanics finalisation
+- [ ] levels? Faster movement?
+
+
