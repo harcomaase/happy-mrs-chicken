@@ -12,7 +12,9 @@ any copyright problems! If there is a problem, please create an issue.
 
 ## current state
 
-You can spawn chicken by clicking or tapping; the canvas should be the full page.
+ - you can spawn chicken by clicking or tapping
+ - the canvas should be the full page
+ - the page can be installed as PWA
 
 Try it out here: https://harcomaase.github.io/happy-mrs-chicken/
 
@@ -29,6 +31,7 @@ incorporated into each development cycle, as well as the acceptance tests.
 - [ ] sprites / animations
 - [ ] sound
 - [ ] first game mechanics
+  - [x] rough game loop
   - [ ] lay egg on tap
   - [ ] move somewhere else
 - [ ] text, debug stats
