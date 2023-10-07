@@ -25,7 +25,7 @@ incorporated into each development cycle, as well as the acceptance tests.
 
 - [x] draw picture on fullscreen canvas
 - [x] draw pictures on input event
-- [ ] browser campatibility (webapp)
+- [x] browser campatibility (webapp)
 - [ ] sprites / animations
 - [ ] sound
 - [ ] first game mechanics
