@@ -78,6 +78,9 @@ function handleTapEvent(eventX, eventY) {
 
 function addChicken(eventX, eventY) {
     chickens.push(new Chicken(eventX, eventY));
+    if (chickens.length > 25) {
+        chickens.shift();
+    }
 }
 
 function gameLoop(timestamp) {
