@@ -1,3 +1,4 @@
+registerServiceWorker();
 
 const canvas = document.getElementById('canvas');
 
@@ -29,6 +30,12 @@ huhnImage.onload = function() {
 }
 huhnImage.src = 'huhn.png';
 
+function registerServiceWorker() {
+    if ("serviceWorker" in navigator) {
+        navigator.serviceWorker.register("serviceworker.js")
+    }
+}
+
 function init() {
     // add some first game-like feature: spawn chicken on touch or click or key
     //
@@ -47,7 +54,6 @@ function init() {
     canvas.addEventListener(
         "mousedown",
         (e) => {
-            console.log('click');
             handleTapEvent(e.clientX, e.clientY);
         }, false
     );
@@ -65,7 +71,7 @@ function init() {
 }
 
 function handleTapEvent(eventX, eventY) {
-    console.log(`handling event with coords: ${eventX}|${eventY}`);
+    //console.log(`handling event with coords: ${eventX}|${eventY}`);
 
     addChicken(eventX, eventY);
 }
@@ -82,7 +88,7 @@ function gameLoop(timestamp) {
     context.fillStyle = "#FAFAFA";
     context.fillRect(0, 0, width, height);
 
-    for (let i = 0; i < chickens.length; i+=1) {
+    for (let i = 0; i < chickens.length; i += 1) {
         const chicken = chickens[i];
         context.drawImage(huhnImage, chicken.x - huhnImage.naturalWidth / 2, chicken.y - huhnImage.naturalHeight / 2);
     }
