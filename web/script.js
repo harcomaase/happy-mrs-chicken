@@ -1,15 +1,12 @@
 registerServiceWorker();
 
 const canvas = document.getElementById('canvas');
-
-const root = document.getElementsByTagName('html')[0];
-let width = root.clientWidth;
-let height = root.clientHeight;
-//TODO: add listener for page size changes
-
-canvas.width = width;
-canvas.height = height;
 const context = canvas.getContext("2d");
+
+let width = 0;
+let height = 0;
+adjustCanvasDimensions();
+
 
 class Point {
     constructor(x, y) {
@@ -56,7 +53,23 @@ function init() {
         }, false
     );
 
+    // adjust canvas size in case of window resizes
+    window.addEventListener("resize", (_e) => {
+        adjustCanvasDimensions();
+    }, false);
+
+    // kick off the game loop
     window.requestAnimationFrame(gameLoop);
+}
+
+function adjustCanvasDimensions() {
+    const root = document.getElementsByTagName('html')[0];
+    width = root.clientWidth;
+    height = root.clientHeight;
+
+    console.log(`changing canvas dimensions from ${canvas.width}x${canvas.height} to ${width}x${height}`);
+    canvas.width = width;
+    canvas.height = height;
 }
 
 function handleTapEvent(eventX, eventY) {
