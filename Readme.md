@@ -12,8 +12,8 @@ any copyright problems! If there is a problem, please create an issue.
 
 ## current state
 
- - you can spawn chicken by clicking or tapping
- - the canvas should be the full page
+ - chicken are moving; you can click on one and it will disappear, but two new chickens are spawned
+ - the canvas should adjust to the page size
  - the page can be installed as PWA
 
 Try it out here: https://harcomaase.github.io/happy-mrs-chicken/
