@@ -15,29 +15,58 @@ class Point {
     }
 }
 
+class Egg {
+    constructor(coords, layedTime, hatchingDuration) {
+        this.coords = coords;
+        this.layedTime = layedTime;
+        this.hatchingDuration = hatchingDuration;
+    }
+}
+
+const CHICKEN_STATE_MOVING = 0;
+const CHICKEN_STATE_LAYING_EGG = 1;
+const chickenEggLayingTime = 2000;
 class Chicken {
     constructor(coords) {
         this.coords = coords;
         this.dest = new Point(Math.random() * width, Math.random() * height);
         this.v = 200;
+        this.state = CHICKEN_STATE_MOVING;
+        this.lastEggTimestamp = 0;
     }
 }
 
 const chickens = [];
 chickens.push(new Chicken(new Point(width / 2, height / 2)));
 
+const eggs = [];
+
 let previousTimestamp = 0;
 
 //TODO: pre-load images before drawing (use window.onload?)
 const huhnImage = new Image();
+const eiImage = new Image();
+let imagesLoaded = 0;
+const imagesToLoad = 2;
 huhnImage.onload = function() {
-    init();
+    checkLoadedImages();
+}
+eiImage.onload = function() {
+    checkLoadedImages();
 }
 huhnImage.src = 'huhn.png';
+eiImage.src = 'ei.png';
 
 function registerServiceWorker() {
     if ("serviceWorker" in navigator) {
         navigator.serviceWorker.register("serviceworker.js")
+    }
+}
+
+function checkLoadedImages() {
+    if (++imagesLoaded >= imagesToLoad) {
+        imagesLoaded = 0;// reset somehow
+        init();
     }
 }
 
@@ -84,16 +113,21 @@ function handleTapEvent(eventX, eventY) {
             && eventY >= chicken.coords.y - halfHeight && eventY <= chicken.coords.y + halfHeight) {
             // very simple collision detection
             //TODO: improve collision detection
-            chickens.splice(i, 1);
-            for (let j = 0; j < 2; j += 1) {
-                const x = Math.random() * width;
-                const y = Math.random() * height;
-                addChicken(x, y);
-            }
+            handleChickenTap(chicken);
             break;
         }
     }
 
+}
+
+function handleChickenTap(chicken) {
+    if (chicken.state !== CHICKEN_STATE_MOVING) {
+        // only moving chicken are tap-able
+        return;
+    }
+    chicken.state = CHICKEN_STATE_LAYING_EGG;
+    chicken.lastEggTimestamp = Date.now();
+    //TODO: laying egg animation
 }
 
 function addChicken(x, y) {
@@ -103,25 +137,66 @@ function addChicken(x, y) {
     }
 }
 
+function setRandomDestination(chicken) {
+    chicken.dest.x = Math.random() * width;
+    chicken.dest.y = Math.random() * height;
+}
+
 function gameLoop(timestamp) {
     const elapsed = (timestamp - previousTimestamp) / 1000;
     previousTimestamp = timestamp;
+    const now = Date.now();
 
     // calculate chicken movement
     for (let i = 0; i < chickens.length; i += 1) {
         const chicken = chickens[i];
 
-        const dx = chicken.dest.x - chicken.coords.x;
-        const dy = chicken.dest.y - chicken.coords.y;
-        const length = Math.sqrt(dx * dx + dy * dy);
-        chicken.coords.x += dx / length * chicken.v * elapsed;
-        chicken.coords.y += dy / length * chicken.v * elapsed;
+        switch (chicken.state) {
+            case CHICKEN_STATE_MOVING:{
+                const dx = chicken.dest.x - chicken.coords.x;
+                const dy = chicken.dest.y - chicken.coords.y;
+                const length = Math.sqrt(dx * dx + dy * dy);
+                chicken.coords.x += dx / length * chicken.v * elapsed;
+                chicken.coords.y += dy / length * chicken.v * elapsed;
 
-        // check if chicken has reached destination
-        if (Math.abs(dx) + Math.abs(dy) < 20) {
-            chicken.dest.x = Math.random() * width;
-            chicken.dest.y = Math.random() * height;
+                // check if chicken has reached destination
+                if (Math.abs(dx) + Math.abs(dy) < 20) {
+                    setRandomDestination(chicken);
+                }
+                break;
+            }
+
+            case CHICKEN_STATE_LAYING_EGG:{
+                const layingTime = now - chicken.lastEggTimestamp;
+                if (layingTime > chickenEggLayingTime) {
+                    setRandomDestination(chicken);
+                    eggs.push(new Egg(new Point(chicken.coords.x, chicken.coords.y), Date.now(), 3000));
+                    chicken.state = CHICKEN_STATE_MOVING;
+                }
+                break;
+            }
+            default:
+                console.log(`illegal chicken state => ${chicken.state}`);
         }
+    }
+
+    // update eggs
+    const eggsToRemove = [];
+    for (let i = 0; i < eggs.length; i += 1) {
+        const egg = eggs[i];
+        if (egg.layedTime + egg.hatchingDuration < now) {
+            // remove egg
+            //TODO: hatching animation
+            eggsToRemove.push(i);
+            // spawn chick0rn
+            addChicken(egg.coords.x, egg.coords.y);
+        }
+
+    }
+    // actually remove the eggs
+    for (let i = eggsToRemove.length - 1; i >= 0; i -= 1) {
+        const index = eggsToRemove[i];
+        eggs.splice(index, 1);
     }
 
     draw();
@@ -138,6 +213,12 @@ function draw() {
     context.font = '2em sans-serif';
     context.fillStyle = 'black';
     context.fillText('click the chicken', 20, 50);
+
+    // draw eggs
+    for (let i = 0; i < eggs.length; i += 1) {
+        const egg = eggs[i];
+        context.drawImage(eiImage, egg.coords.x - eiImage.naturalWidth / 2, egg.coords.y - eiImage.naturalHeight / 2);
+    }
 
     // draw chickens
     for (let i = 0; i < chickens.length; i += 1) {

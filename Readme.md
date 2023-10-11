@@ -12,11 +12,23 @@ any copyright problems! If there is a problem, please create an issue.
 
 ## current state
 
- - chicken are moving; you can click on one and it will disappear, but two new chickens are spawned
- - the canvas should adjust to the page size
+Try it out here: https://harcomaase.github.io/happy-mrs-chicken/
+
+### gameplay
+
+ - you can tap on a moving chicken. It will stop and lay an egg
+ - after the chicken layed the egg, it starts moving again
+ - after some time a new chicken hatches from the egg
+ - the new chicken is immediately able to lay eggs
+
+### technical
+
+ - the canvas occupies the full page
  - the page can be installed as PWA
 
-Try it out here: https://harcomaase.github.io/happy-mrs-chicken/
+### art
+
+- current graphics are placeholders only
 
 ## very rough roadmap
 
@@ -32,8 +44,9 @@ incorporated into each development cycle, as well as the acceptance tests.
 - [ ] sound
 - [ ] first game mechanics
   - [x] rough game loop
-  - [ ] lay egg on tap
-  - [ ] move somewhere else
+  - [x] lay egg on tap
+  - [x] move somewhere else
+  - [ ] goal, or reset possibility
 - [ ] text, debug stats
 - [ ] game state, intro screen, end screen
 - [ ] game mechanics finalisation
