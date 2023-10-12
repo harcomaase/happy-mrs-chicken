@@ -7,7 +7,6 @@ let width = 0;
 let height = 0;
 adjustCanvasDimensions();
 
-
 class Point {
     constructor(x, y) {
         this.x = x;
@@ -36,26 +35,31 @@ class Chicken {
     }
 }
 
-const chickens = [];
-chickens.push(new Chicken(new Point(width / 2, height / 2)));
+class GameState {
+    chickens = [];
+    eggs = [];
 
-const eggs = [];
+    gameLoopPreviousTimestamp = 0;
+}
 
-let previousTimestamp = 0;
+const gameState = new GameState();
+
+gameState.chickens.push(new Chicken(new Point(width / 2, height / 2)));
+
 
 //TODO: pre-load images before drawing (use window.onload?)
-const huhnImage = new Image();
-const eiImage = new Image();
+const images = {};
+images.huhnImage = new Image();
+images.eiImage = new Image();
 let imagesLoaded = 0;
-const imagesToLoad = 2;
-huhnImage.onload = function() {
+images.huhnImage.onload = function() {
     checkLoadedImages();
 }
-eiImage.onload = function() {
+images.eiImage.onload = function() {
     checkLoadedImages();
 }
-huhnImage.src = 'huhn.png';
-eiImage.src = 'ei.png';
+images.huhnImage.src = 'huhn.png';
+images.eiImage.src = 'ei.png';
 
 function registerServiceWorker() {
     if ("serviceWorker" in navigator) {
@@ -64,7 +68,7 @@ function registerServiceWorker() {
 }
 
 function checkLoadedImages() {
-    if (++imagesLoaded >= imagesToLoad) {
+    if (++imagesLoaded >= Object.keys(images).length) {
         imagesLoaded = 0;// reset somehow
         init();
     }
@@ -105,10 +109,10 @@ function handleTapEvent(eventX, eventY) {
     console.log(`handling event with coords: ${eventX}|${eventY}`);
 
     // check if chicken was tapped
-    const halfWidth = huhnImage.naturalWidth / 2;
-    const halfHeight = huhnImage.naturalHeight / 2;
-    for (let i = 0; i < chickens.length; i += 1) {
-        const chicken = chickens[i];
+    const halfWidth = images.huhnImage.naturalWidth / 2;
+    const halfHeight = images.huhnImage.naturalHeight / 2;
+    for (let i = 0; i < gameState.chickens.length; i += 1) {
+        const chicken = gameState.chickens[i];
         if (eventX >= chicken.coords.x - halfWidth && eventX <= chicken.coords.x + halfWidth
             && eventY >= chicken.coords.y - halfHeight && eventY <= chicken.coords.y + halfHeight) {
             // very simple collision detection
@@ -131,9 +135,9 @@ function handleChickenTap(chicken) {
 }
 
 function addChicken(x, y) {
-    chickens.push(new Chicken(new Point(x, y)));
-    if (chickens.length > 25) {
-        chickens.shift();
+    gameState.chickens.push(new Chicken(new Point(x, y)));
+    if (gameState.chickens.length > 25) {
+        gameState.chickens.shift();
     }
 }
 
@@ -143,13 +147,13 @@ function setRandomDestination(chicken) {
 }
 
 function gameLoop(timestamp) {
-    const elapsed = (timestamp - previousTimestamp) / 1000;
-    previousTimestamp = timestamp;
+    const elapsed = (timestamp - gameState.gameLoopPreviousTimestamp) / 1000;
+    gameState.gameLoopPreviousTimestamp= timestamp;
     const now = Date.now();
 
     // calculate chicken movement
-    for (let i = 0; i < chickens.length; i += 1) {
-        const chicken = chickens[i];
+    for (let i = 0; i < gameState.chickens.length; i += 1) {
+        const chicken = gameState.chickens[i];
 
         switch (chicken.state) {
             case CHICKEN_STATE_MOVING:{
@@ -170,7 +174,7 @@ function gameLoop(timestamp) {
                 const layingTime = now - chicken.lastEggTimestamp;
                 if (layingTime > chickenEggLayingTime) {
                     setRandomDestination(chicken);
-                    eggs.push(new Egg(new Point(chicken.coords.x, chicken.coords.y), Date.now(), 3000));
+                    gameState.eggs.push(new Egg(new Point(chicken.coords.x, chicken.coords.y), Date.now(), 3000));
                     chicken.state = CHICKEN_STATE_MOVING;
                 }
                 break;
@@ -182,8 +186,8 @@ function gameLoop(timestamp) {
 
     // update eggs
     const eggsToRemove = [];
-    for (let i = 0; i < eggs.length; i += 1) {
-        const egg = eggs[i];
+    for (let i = 0; i < gameState.eggs.length; i += 1) {
+        const egg = gameState.eggs[i];
         if (egg.layedTime + egg.hatchingDuration < now) {
             // remove egg
             //TODO: hatching animation
@@ -196,7 +200,7 @@ function gameLoop(timestamp) {
     // actually remove the eggs
     for (let i = eggsToRemove.length - 1; i >= 0; i -= 1) {
         const index = eggsToRemove[i];
-        eggs.splice(index, 1);
+        gameState.eggs.splice(index, 1);
     }
 
     draw();
@@ -215,15 +219,15 @@ function draw() {
     context.fillText('click the chicken', 20, 50);
 
     // draw eggs
-    for (let i = 0; i < eggs.length; i += 1) {
-        const egg = eggs[i];
-        context.drawImage(eiImage, egg.coords.x - eiImage.naturalWidth / 2, egg.coords.y - eiImage.naturalHeight / 2);
+    for (let i = 0; i < gameState.eggs.length; i += 1) {
+        const egg = gameState.eggs[i];
+        context.drawImage(images.eiImage, egg.coords.x - images.eiImage.naturalWidth / 2, egg.coords.y - images.eiImage.naturalHeight / 2);
     }
 
     // draw chickens
-    for (let i = 0; i < chickens.length; i += 1) {
-        const chicken = chickens[i];
-        context.drawImage(huhnImage, chicken.coords.x - huhnImage.naturalWidth / 2, chicken.coords.y - huhnImage.naturalHeight / 2);
+    for (let i = 0; i < gameState.chickens.length; i += 1) {
+        const chicken = gameState.chickens[i];
+        context.drawImage(images.huhnImage, chicken.coords.x - images.huhnImage.naturalWidth / 2, chicken.coords.y - images.huhnImage.naturalHeight / 2);
     }
 
 }
