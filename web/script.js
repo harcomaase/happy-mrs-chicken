@@ -64,7 +64,7 @@ const GameConfig = {
     maxChickenQuantity: 25,
 }
 class GameState {
-    phase = GameConfig.phaseMainGame;
+    phase = GameConfig.phaseWelcomeScreen;
 
     chickens = [];
     eggs = [];
@@ -80,6 +80,7 @@ gameState.chickens.push(new Chicken(new Point(display.width / 2, display.height 
 const images = {};
 images.huhnImage = new Image();
 images.eiImage = new Image();
+images.welcomeScreenImage = new Image();
 let imagesLoaded = 0;
 images.huhnImage.onload = function() {
     checkLoadedImages();
@@ -87,8 +88,12 @@ images.huhnImage.onload = function() {
 images.eiImage.onload = function() {
     checkLoadedImages();
 }
+images.welcomeScreenImage.onload = function() {
+    checkLoadedImages();
+}
 images.huhnImage.src = 'huhn.png';
 images.eiImage.src = 'ei.png';
+images.welcomeScreenImage.src = 'welcome.png';
 
 function registerServiceWorker() {
     if ("serviceWorker" in navigator) {
@@ -115,7 +120,7 @@ function init() {
 
     // adjust canvas size in case of window resizes
     window.addEventListener("resize", (_e) => {
-        adjustCanvasDimensions();
+        display.adjustCanvasDimensions();
     }, false);
 
     // kick off the game loop
@@ -127,8 +132,15 @@ function handleTapEvent(eventX, eventY) {
     console.log(`handling event with coords: ${eventX}|${eventY}`);
 
     switch (gameState.phase) {
-        case GameConfig.phaseLoading:
-        case GameConfig.phaseWelcomeScreen:
+        case GameConfig.phaseLoading: {
+            console.log('ignoring tap event in current phase');
+            break;
+        }
+        case GameConfig.phaseWelcomeScreen: {
+            console.log('entering main game');
+            gameState.phase = GameConfig.phaseMainGame;
+            break;
+        }
         case GameConfig.phaseGameOver: {
             console.log('ignoring tap event in current phase');
             break;
@@ -171,6 +183,7 @@ function handleChickenTap(chicken) {
 function addChicken(x, y) {
     gameState.chickens.push(new Chicken(new Point(x, y)));
     if (gameState.chickens.length > GameConfig.maxChickenQuantity) {
+        //TODO: introduce game over
         gameState.chickens.shift();
     }
 }
@@ -181,24 +194,31 @@ function setRandomDestination(chicken) {
 }
 
 function gameLoop(timestamp) {
+    const elapsed = (timestamp - gameState.gameLoopPreviousTimestamp) / 1000;
+    gameState.gameLoopPreviousTimestamp = timestamp;
     switch (gameState.phase) {
-        case GameConfig.phaseLoading:
-        case GameConfig.phaseWelcomeScreen:
-        case GameConfig.phaseGameOver:
+        case GameConfig.phaseLoading: {
             break;
+        }
+        case GameConfig.phaseWelcomeScreen: {
+            drawWelcomeScreen();
+            break;
+        }
+        case GameConfig.phaseGameOver: {
+            break;
+        }
 
         case GameConfig.phaseMainGame: {
-            gameLoopMainGame(timestamp);
+            gameLoopMainGame(elapsed);
             break;
         }
         default:
             console.log(`unknown game phase: ${gameState.phase}`);
     }
+    window.requestAnimationFrame(gameLoop);
 }
 
-function gameLoopMainGame(timestamp) {
-    const elapsed = (timestamp - gameState.gameLoopPreviousTimestamp) / 1000;
-    gameState.gameLoopPreviousTimestamp = timestamp;
+function gameLoopMainGame(elapsed) {
     const now = Date.now();
 
     // calculate chicken movement
@@ -253,20 +273,19 @@ function gameLoopMainGame(timestamp) {
         gameState.eggs.splice(index, 1);
     }
 
-    draw();
+    drawMainGame();
 
-    window.requestAnimationFrame(gameLoop);
 }
 
-function draw() {
+function drawMainGame() {
     // clear screen
     display.context.fillStyle = "#FAFAFA";
     display.context.fillRect(0, 0, display.width, display.height);
 
     // instructions and info
-    display.context.font = '2em sans-serif';
-    display.context.fillStyle = 'black';
-    display.context.fillText('click the chicken', 20, 50);
+    // display.context.font = '2em sans-serif';
+    // display.context.fillStyle = 'black';
+    // display.context.fillText('click the chicken', 20, 50);
 
     // draw eggs
     for (let i = 0; i < gameState.eggs.length; i += 1) {
@@ -280,5 +299,31 @@ function draw() {
         display.context.drawImage(images.huhnImage, chicken.coords.x - images.huhnImage.naturalWidth / 2, chicken.coords.y - images.huhnImage.naturalHeight / 2);
     }
 
+}
+
+function drawWelcomeScreen() {
+    // clear screen
+    display.context.fillStyle = "#FAFAFA";
+    display.context.fillRect(0, 0, display.width, display.height);
+
+    //if(display.height<images.welcomeScreenImage.naturalHeight) {
+    //    display.context.drawImage(images.welcomeScreenImage, 0, 0, images.welcomeScreenImage.naturalWidth,display.height);
+    //}else if(display.width<images.welcomeScreenImage.naturalWidth) {
+    //    display.context.drawImage(images.welcomeScreenImage, 0, 0, display.width,images.welcomeScreenImage.naturalHeight);
+    if (display.height > display.width) {
+        const scaleFactor = display.width / images.welcomeScreenImage.naturalWidth;
+        let horizontalSpace = (display.height - images.welcomeScreenImage.naturalHeight) / scaleFactor /3;
+        if(horizontalSpace<0){
+            horizontalSpace=0;
+        }
+        display.context.drawImage(images.welcomeScreenImage, 0, horizontalSpace, display.width, scaleFactor * images.welcomeScreenImage.naturalHeight);
+    } else {
+        const scaleFactor = display.height / images.welcomeScreenImage.naturalHeight;
+        let verticalSpace = (display.width - images.welcomeScreenImage.naturalWidth) / scaleFactor / 1.25;
+        if(verticalSpace<0){
+            verticalSpace=0;
+        }
+        display.context.drawImage(images.welcomeScreenImage, verticalSpace, 0, scaleFactor * images.welcomeScreenImage.naturalWidth, display.height);
+    }
 }
 

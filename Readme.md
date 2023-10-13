@@ -16,15 +16,16 @@ Try it out here: https://harcomaase.github.io/happy-mrs-chicken/
 
 ### gameplay
 
- - you can tap on a moving chicken. It will stop and lay an egg
- - after the chicken layed the egg, it starts moving again
- - after some time a new chicken hatches from the egg
- - the new chicken is immediately able to lay eggs
+- you can tap on a moving chicken. It will stop and lay an egg
+- after the chicken layed the egg, it starts moving again
+- after some time a new chicken hatches from the egg
+- the new chicken is immediately able to lay eggs
 
 ### technical
 
- - the canvas occupies the full page
- - the page can be installed as PWA
+- the canvas occupies the full page
+- the page can be installed as PWA
+- game phases available (welcome screen, main game etc.)
 
 ### art
 
@@ -49,6 +50,8 @@ incorporated into each development cycle, as well as the acceptance tests.
   - [ ] goal, or reset possibility
 - [ ] text, debug stats
 - [ ] game state, intro screen, end screen
+  - [x] welcome screen
+  - [ ] game over screen
 - [ ] game mechanics finalisation
 - [ ] levels? Faster movement?
 
