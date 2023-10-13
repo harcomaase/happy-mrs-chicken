@@ -1,11 +1,27 @@
 registerServiceWorker();
 
-const canvas = document.getElementById('canvas');
-const context = canvas.getContext("2d");
+class Display {
+    canvas = document.getElementById('canvas');
+    context = canvas.getContext("2d");
 
-let width = 0;
-let height = 0;
-adjustCanvasDimensions();
+    constructor(width, height) {
+        this.width = width;
+        this.height = height;
+    }
+
+    adjustCanvasDimensions() {
+        const root = document.getElementsByTagName('html')[0];
+        this.width = root.clientWidth;
+        this.height = root.clientHeight;
+
+        console.log(`changing canvas dimensions from ${this.canvas.width}x${this.canvas.height} to ${this.width}x${this.height}`);
+        this.canvas.width = this.width;
+        this.canvas.height = this.height;
+    }
+}
+
+const display = new Display(0, 0);
+display.adjustCanvasDimensions();
 
 class Point {
     constructor(x, y) {
@@ -22,20 +38,34 @@ class Egg {
     }
 }
 
-const CHICKEN_STATE_MOVING = 0;
-const CHICKEN_STATE_LAYING_EGG = 1;
-const chickenEggLayingTime = 2000;
+const ChickenConfig = {
+    stateMoving: 0,
+    stateLayingEgg: 1,
+
+    speed: 200,
+    eggLayingTime: 2000,
+};
 class Chicken {
     constructor(coords) {
         this.coords = coords;
-        this.dest = new Point(Math.random() * width, Math.random() * height);
-        this.v = 200;
-        this.state = CHICKEN_STATE_MOVING;
+        this.dest = new Point(Math.random() * display.width, Math.random() * display.height);
+        this.v = ChickenConfig.speed;
+        this.state = ChickenConfig.stateMoving;
         this.lastEggTimestamp = 0;
     }
 }
 
+const GameConfig = {
+    phaseLoading: 0,
+    phaseWelcomeScreen: 1,
+    phaseMainGame: 2,
+    phaseGameOver: 3,
+
+    maxChickenQuantity: 25,
+}
 class GameState {
+    phase = GameConfig.phaseMainGame;
+
     chickens = [];
     eggs = [];
 
@@ -44,8 +74,7 @@ class GameState {
 
 const gameState = new GameState();
 
-gameState.chickens.push(new Chicken(new Point(width / 2, height / 2)));
-
+gameState.chickens.push(new Chicken(new Point(display.width / 2, display.height / 2)));
 
 //TODO: pre-load images before drawing (use window.onload?)
 const images = {};
@@ -75,8 +104,6 @@ function checkLoadedImages() {
 }
 
 function init() {
-    // add some first game-like feature: spawn chicken on touch or click
-    //
     // seems like touch events always also generate a mousedown event, so we
     // don't need the touch event
     canvas.addEventListener(
@@ -95,60 +122,83 @@ function init() {
     window.requestAnimationFrame(gameLoop);
 }
 
-function adjustCanvasDimensions() {
-    const root = document.getElementsByTagName('html')[0];
-    width = root.clientWidth;
-    height = root.clientHeight;
-
-    console.log(`changing canvas dimensions from ${canvas.width}x${canvas.height} to ${width}x${height}`);
-    canvas.width = width;
-    canvas.height = height;
-}
 
 function handleTapEvent(eventX, eventY) {
     console.log(`handling event with coords: ${eventX}|${eventY}`);
 
-    // check if chicken was tapped
-    const halfWidth = images.huhnImage.naturalWidth / 2;
-    const halfHeight = images.huhnImage.naturalHeight / 2;
-    for (let i = 0; i < gameState.chickens.length; i += 1) {
-        const chicken = gameState.chickens[i];
-        if (eventX >= chicken.coords.x - halfWidth && eventX <= chicken.coords.x + halfWidth
-            && eventY >= chicken.coords.y - halfHeight && eventY <= chicken.coords.y + halfHeight) {
-            // very simple collision detection
-            //TODO: improve collision detection
-            handleChickenTap(chicken);
+    switch (gameState.phase) {
+        case GameConfig.phaseLoading:
+        case GameConfig.phaseWelcomeScreen:
+        case GameConfig.phaseGameOver: {
+            console.log('ignoring tap event in current phase');
             break;
         }
+
+        case GameConfig.phaseMainGame: {
+            // check if chicken was tapped
+            const halfWidth = images.huhnImage.naturalWidth / 2;
+            const halfHeight = images.huhnImage.naturalHeight / 2;
+            for (let i = 0; i < gameState.chickens.length; i += 1) {
+                const chicken = gameState.chickens[i];
+                if (eventX >= chicken.coords.x - halfWidth && eventX <= chicken.coords.x + halfWidth
+                    && eventY >= chicken.coords.y - halfHeight && eventY <= chicken.coords.y + halfHeight) {
+                    // very simple collision detection
+                    //TODO: improve collision detection
+                    handleChickenTap(chicken);
+                    break;
+                }
+            }
+            break;
+        }
+
+        default:
+            console.log(`unknown game phase: ${gameState.phase}`);
+            break;
     }
 
 }
 
 function handleChickenTap(chicken) {
-    if (chicken.state !== CHICKEN_STATE_MOVING) {
+    if (chicken.state !== ChickenConfig.stateMoving) {
         // only moving chicken are tap-able
         return;
     }
-    chicken.state = CHICKEN_STATE_LAYING_EGG;
+    chicken.state = ChickenConfig.stateLayingEgg;
     chicken.lastEggTimestamp = Date.now();
     //TODO: laying egg animation
 }
 
 function addChicken(x, y) {
     gameState.chickens.push(new Chicken(new Point(x, y)));
-    if (gameState.chickens.length > 25) {
+    if (gameState.chickens.length > GameConfig.maxChickenQuantity) {
         gameState.chickens.shift();
     }
 }
 
 function setRandomDestination(chicken) {
-    chicken.dest.x = Math.random() * width;
-    chicken.dest.y = Math.random() * height;
+    chicken.dest.x = Math.random() * display.width;
+    chicken.dest.y = Math.random() * display.height;
 }
 
 function gameLoop(timestamp) {
+    switch (gameState.phase) {
+        case GameConfig.phaseLoading:
+        case GameConfig.phaseWelcomeScreen:
+        case GameConfig.phaseGameOver:
+            break;
+
+        case GameConfig.phaseMainGame: {
+            gameLoopMainGame(timestamp);
+            break;
+        }
+        default:
+            console.log(`unknown game phase: ${gameState.phase}`);
+    }
+}
+
+function gameLoopMainGame(timestamp) {
     const elapsed = (timestamp - gameState.gameLoopPreviousTimestamp) / 1000;
-    gameState.gameLoopPreviousTimestamp= timestamp;
+    gameState.gameLoopPreviousTimestamp = timestamp;
     const now = Date.now();
 
     // calculate chicken movement
@@ -156,7 +206,7 @@ function gameLoop(timestamp) {
         const chicken = gameState.chickens[i];
 
         switch (chicken.state) {
-            case CHICKEN_STATE_MOVING:{
+            case ChickenConfig.stateMoving: {
                 const dx = chicken.dest.x - chicken.coords.x;
                 const dy = chicken.dest.y - chicken.coords.y;
                 const length = Math.sqrt(dx * dx + dy * dy);
@@ -170,12 +220,12 @@ function gameLoop(timestamp) {
                 break;
             }
 
-            case CHICKEN_STATE_LAYING_EGG:{
+            case ChickenConfig.stateLayingEgg: {
                 const layingTime = now - chicken.lastEggTimestamp;
-                if (layingTime > chickenEggLayingTime) {
+                if (layingTime > ChickenConfig.eggLayingTime) {
                     setRandomDestination(chicken);
                     gameState.eggs.push(new Egg(new Point(chicken.coords.x, chicken.coords.y), Date.now(), 3000));
-                    chicken.state = CHICKEN_STATE_MOVING;
+                    chicken.state = ChickenConfig.stateMoving;
                 }
                 break;
             }
@@ -210,24 +260,24 @@ function gameLoop(timestamp) {
 
 function draw() {
     // clear screen
-    context.fillStyle = "#FAFAFA";
-    context.fillRect(0, 0, width, height);
+    display.context.fillStyle = "#FAFAFA";
+    display.context.fillRect(0, 0, display.width, display.height);
 
     // instructions and info
-    context.font = '2em sans-serif';
-    context.fillStyle = 'black';
-    context.fillText('click the chicken', 20, 50);
+    display.context.font = '2em sans-serif';
+    display.context.fillStyle = 'black';
+    display.context.fillText('click the chicken', 20, 50);
 
     // draw eggs
     for (let i = 0; i < gameState.eggs.length; i += 1) {
         const egg = gameState.eggs[i];
-        context.drawImage(images.eiImage, egg.coords.x - images.eiImage.naturalWidth / 2, egg.coords.y - images.eiImage.naturalHeight / 2);
+        display.context.drawImage(images.eiImage, egg.coords.x - images.eiImage.naturalWidth / 2, egg.coords.y - images.eiImage.naturalHeight / 2);
     }
 
     // draw chickens
     for (let i = 0; i < gameState.chickens.length; i += 1) {
         const chicken = gameState.chickens[i];
-        context.drawImage(images.huhnImage, chicken.coords.x - images.huhnImage.naturalWidth / 2, chicken.coords.y - images.huhnImage.naturalHeight / 2);
+        display.context.drawImage(images.huhnImage, chicken.coords.x - images.huhnImage.naturalWidth / 2, chicken.coords.y - images.huhnImage.naturalHeight / 2);
     }
 
 }
