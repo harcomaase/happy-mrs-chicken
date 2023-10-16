@@ -12,7 +12,7 @@ class Display {
     adjustCanvasDimensions() {
         const root = document.getElementsByTagName('html')[0];
         this.width = root.clientWidth;
-        this.height = root.clientHeight;
+        this.height = root.clientHeight - 5;
 
         console.log(`changing canvas dimensions from ${this.canvas.width}x${this.canvas.height} to ${this.width}x${this.height}`);
         this.canvas.width = this.width;
@@ -65,7 +65,13 @@ const GameConfig = {
 }
 class GameState {
     phase = GameConfig.phaseWelcomeScreen;
+    gameInitialisedTimestamp = 0;
 
+    // attributes for phase: welcome screen
+    welcomeScreenTransitionStart = 0;
+    welcomeScreenJumpDone = false;
+
+    // attributes for phase: main game
     chickens = [];
     eggs = [];
 
@@ -80,7 +86,6 @@ gameState.chickens.push(new Chicken(new Point(display.width / 2, display.height 
 const images = {};
 images.huhnImage = new Image();
 images.eiImage = new Image();
-images.welcomeScreenImage = new Image();
 let imagesLoaded = 0;
 images.huhnImage.onload = function() {
     checkLoadedImages();
@@ -88,12 +93,8 @@ images.huhnImage.onload = function() {
 images.eiImage.onload = function() {
     checkLoadedImages();
 }
-images.welcomeScreenImage.onload = function() {
-    checkLoadedImages();
-}
 images.huhnImage.src = 'huhn.png';
 images.eiImage.src = 'ei.png';
-images.welcomeScreenImage.src = 'welcome.png';
 
 function registerServiceWorker() {
     if ("serviceWorker" in navigator) {
@@ -123,6 +124,7 @@ function init() {
         display.adjustCanvasDimensions();
     }, false);
 
+    gameState.gameInitialisedTimestamp = Date.now();
     // kick off the game loop
     window.requestAnimationFrame(gameLoop);
 }
@@ -137,8 +139,9 @@ function handleTapEvent(eventX, eventY) {
             break;
         }
         case GameConfig.phaseWelcomeScreen: {
+            // tapping on welcome screen leads to the main game
             console.log('entering main game');
-            gameState.phase = GameConfig.phaseMainGame;
+            gameState.welcomeScreenTransitionStart = Date.now();
             break;
         }
         case GameConfig.phaseGameOver: {
@@ -306,24 +309,54 @@ function drawWelcomeScreen() {
     display.context.fillStyle = "#FAFAFA";
     display.context.fillRect(0, 0, display.width, display.height);
 
-    //if(display.height<images.welcomeScreenImage.naturalHeight) {
-    //    display.context.drawImage(images.welcomeScreenImage, 0, 0, images.welcomeScreenImage.naturalWidth,display.height);
-    //}else if(display.width<images.welcomeScreenImage.naturalWidth) {
-    //    display.context.drawImage(images.welcomeScreenImage, 0, 0, display.width,images.welcomeScreenImage.naturalHeight);
-    if (display.height > display.width) {
-        const scaleFactor = display.width / images.welcomeScreenImage.naturalWidth;
-        let horizontalSpace = (display.height - images.welcomeScreenImage.naturalHeight) / scaleFactor /3;
-        if(horizontalSpace<0){
-            horizontalSpace=0;
-        }
-        display.context.drawImage(images.welcomeScreenImage, 0, horizontalSpace, display.width, scaleFactor * images.welcomeScreenImage.naturalHeight);
-    } else {
-        const scaleFactor = display.height / images.welcomeScreenImage.naturalHeight;
-        let verticalSpace = (display.width - images.welcomeScreenImage.naturalWidth) / scaleFactor / 1.25;
-        if(verticalSpace<0){
-            verticalSpace=0;
-        }
-        display.context.drawImage(images.welcomeScreenImage, verticalSpace, 0, scaleFactor * images.welcomeScreenImage.naturalWidth, display.height);
+    const timestamp = Date.now();
+    const elapsedSinceStart = timestamp - gameState.gameInitialisedTimestamp;
+    const elapsedSinceTransitionStart = timestamp - gameState.welcomeScreenTransitionStart;
+
+    const transitionDurationInMillis = 500;
+    const slowingFactor = 10;
+    const scale = 2;
+
+
+    // jumping chicken animation as welcome screen
+    let jumpY = -Math.cos(elapsedSinceStart / slowingFactor / 180 * Math.PI) * images.huhnImage.naturalHeight / 2;
+    if (jumpY < 0 && !gameState.welcomeScreenJumpDone) {
+        jumpY = 0;
     }
+
+    if (gameState.welcomeScreenTransitionStart > 0
+        && !gameState.welcomeScreenJumpDone
+        && jumpY === 0) {
+        gameState.welcomeScreenJumpDone = true;
+        gameState.welcomeScreenTransitionStart = timestamp;
+        return;
+    }
+
+    // main game about to start, begin transition animation
+    if (gameState.welcomeScreenJumpDone) {
+        if (elapsedSinceTransitionStart > transitionDurationInMillis) {
+            gameState.phase = GameConfig.phaseMainGame;
+            return;
+        }
+        const transitionProgressInPercent = elapsedSinceTransitionStart / transitionDurationInMillis;
+        const transitionScale = scale - transitionProgressInPercent;
+
+        const startX = display.width / 2 - images.huhnImage.naturalWidth / 2 * transitionScale;
+        const startY = display.height / 2 - images.huhnImage.naturalHeight / 2 * transitionScale;
+
+        display.context.translate(startX, startY);
+        display.context.scale(transitionScale, transitionScale);
+        display.context.drawImage(images.huhnImage, 0, 0);
+        display.context.resetTransform();
+        return;
+    }
+
+    const startX = display.width / 2 - images.huhnImage.naturalWidth / 2 * scale;
+    const startY = display.height / 2 - images.huhnImage.naturalHeight / 2 * scale;
+
+    display.context.translate(startX, startY);
+    display.context.scale(scale, scale);
+    display.context.drawImage(images.huhnImage, 0, -jumpY);
+    display.context.resetTransform();
 }
 
