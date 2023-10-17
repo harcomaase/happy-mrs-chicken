@@ -3,7 +3,7 @@
 (german name: "Das Huhn hat zu tun")
 
 This is going to be an implementation of the game "Happy Mrs. Chicken" from
-the childen television series "Peppa Pig"
+the children television series "Peppa Pig"
 
 One of the game goals is to teach younglings what it means to be a programmer :)
 
@@ -25,7 +25,6 @@ Try it out here: https://harcomaase.github.io/happy-mrs-chicken/
 
 - the canvas occupies the full page
 - the page can be installed as PWA
-- game phases available (welcome screen, main game etc.)
 
 ### art
 

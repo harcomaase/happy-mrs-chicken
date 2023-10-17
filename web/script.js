@@ -64,18 +64,24 @@ const GameConfig = {
     maxChickenQuantity: 25,
 }
 class GameState {
-    phase = GameConfig.phaseWelcomeScreen;
-    gameInitialisedTimestamp = 0;
+    constructor() {
+        this.phase = GameConfig.phaseWelcomeScreen;
+        this.reset();
+    }
 
-    // attributes for phase: welcome screen
-    welcomeScreenTransitionStart = 0;
-    welcomeScreenJumpDone = false;
+    reset() {
+        this.gameInitialisedTimestamp = 0;
 
-    // attributes for phase: main game
-    chickens = [];
-    eggs = [];
+        // attributes for phase: welcome screen
+        this.welcomeScreenTransitionStart = 0;
+        this.welcomeScreenJumpDone = false;
 
-    gameLoopPreviousTimestamp = 0;
+        // attributes for phase: main game
+        this.chickens = [];
+        this.eggs = [];
+
+        this.gameLoopPreviousTimestamp = 0;
+    }
 }
 
 const gameState = new GameState();
@@ -286,9 +292,10 @@ function drawMainGame() {
     display.context.fillRect(0, 0, display.width, display.height);
 
     // instructions and info
-    // display.context.font = '2em sans-serif';
-    // display.context.fillStyle = 'black';
-    // display.context.fillText('click the chicken', 20, 50);
+    display.context.font = '2em sans-serif';
+    display.context.fillStyle = 'black';
+    const scoreText = gameState.chickens.length + ' / ' + GameConfig.maxChickenQuantity;
+    display.context.fillText(scoreText, display.width - 40 - display.context.measureText(scoreText).width, 50);
 
     // draw eggs
     for (let i = 0; i < gameState.eggs.length; i += 1) {
@@ -324,6 +331,7 @@ function drawWelcomeScreen() {
         jumpY = 0;
     }
 
+    // finish the jumping animation before starting the transition animation
     if (gameState.welcomeScreenTransitionStart > 0
         && !gameState.welcomeScreenJumpDone
         && jumpY === 0) {
@@ -338,6 +346,7 @@ function drawWelcomeScreen() {
             gameState.phase = GameConfig.phaseMainGame;
             return;
         }
+        // linearly scale down the chicken
         const transitionProgressInPercent = elapsedSinceTransitionStart / transitionDurationInMillis;
         const transitionScale = scale - transitionProgressInPercent;
 
@@ -351,6 +360,7 @@ function drawWelcomeScreen() {
         return;
     }
 
+    // default welcome screen: big jumping chicken
     const startX = display.width / 2 - images.huhnImage.naturalWidth / 2 * scale;
     const startY = display.height / 2 - images.huhnImage.naturalHeight / 2 * scale;
 
