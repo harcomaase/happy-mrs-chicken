@@ -56,7 +56,7 @@ const ChickenConfig = {
     speed: 200,
     eggLayingTime: 2000,
     // for durations between 1 and 6 seconds
-    moveDurationBase: 10000,
+    moveDurationBase: 1000,
     moveDurationVariance: 5000,
 };
 class Chicken {
