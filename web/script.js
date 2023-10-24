@@ -28,6 +28,16 @@ class Point {
         this.x = x;
         this.y = y;
     }
+
+    /**
+        * interprets the coordinates of this point as vector and normalises
+        * it (setting the length to 1)
+    */
+    normaliseVector() {
+        const length = Math.sqrt(this.x * this.x + this.y * this.y);
+        this.x /= length;
+        this.y /= length;
+    }
 }
 
 class Egg {
@@ -41,17 +51,36 @@ class Egg {
 const ChickenConfig = {
     stateMoving: 0,
     stateLayingEgg: 1,
+    stateLeaving: 2,
 
     speed: 200,
     eggLayingTime: 2000,
+    // for durations between 1 and 6 seconds
+    moveDurationBase: 10000,
+    moveDurationVariance: 5000,
 };
 class Chicken {
     constructor(coords) {
         this.coords = coords;
-        this.dest = new Point(Math.random() * display.width, Math.random() * display.height);
+        this.setRandomDestination();
         this.v = ChickenConfig.speed;
         this.state = ChickenConfig.stateMoving;
         this.lastEggTimestamp = 0;
+    }
+
+    setDestination(x, y) {
+        this.moveVec = new Point(x - this.coords.x, y - this.coords.y);
+        this.moveVec.normaliseVector();
+        this.moveVecLastChange = Date.now();
+        this.moveDuration = ChickenConfig.moveDurationBase + Math.random() * ChickenConfig.moveDurationVariance;
+    }
+
+    setRandomDestination() {
+        this.setDestination(Math.random() * display.width, Math.random() * display.height);
+    }
+
+    isWithinBounds(lowX, lowY, highX, highY) {
+        return this.coords.x > lowX && this.coords.y > lowY && this.coords.x < highX && this.coords.y < highY;
     }
 }
 
@@ -81,6 +110,7 @@ class GameState {
         this.eggs = [];
 
         this.gameLoopPreviousTimestamp = 0;
+        this.totalScore = 0;
     }
 }
 
@@ -192,14 +222,29 @@ function handleChickenTap(chicken) {
 function addChicken(x, y) {
     gameState.chickens.push(new Chicken(new Point(x, y)));
     if (gameState.chickens.length > GameConfig.maxChickenQuantity) {
-        //TODO: introduce game over
-        gameState.chickens.shift();
-    }
-}
 
-function setRandomDestination(chicken) {
-    chicken.dest.x = Math.random() * display.width;
-    chicken.dest.y = Math.random() * display.height;
+        // "soft game over", or reset of the game:
+        // all chicken (except the newest) run outside of the screen
+        //
+        // there is a funny bug/feature: when another chicken hatches while there
+        // are still chicken leaving, and this logic is invoked again, they
+        // will run even faster, and back again through the middle of the screen
+        for (let i = 0; i < gameState.chickens.length - 1; i += 1) {
+            const chicken = gameState.chickens[i];
+
+            chicken.state = ChickenConfig.stateLeaving;
+
+            // chicken should run through the middle of the screen, with a bit of random
+            const variance = images.huhnImage.naturalWidth;
+            const destX = display.width / 2 - variance / 2 + Math.random() * variance;
+            const destY = display.height / 2 - variance / 2 + Math.random() * variance;
+            chicken.setDestination(destX, destY);
+            // run!
+            chicken.v *= 2;
+        }
+
+    }
+
 }
 
 function gameLoop(timestamp) {
@@ -230,21 +275,33 @@ function gameLoop(timestamp) {
 function gameLoopMainGame(elapsed) {
     const now = Date.now();
 
+    const chickenToRemove = [];
     // calculate chicken movement
     for (let i = 0; i < gameState.chickens.length; i += 1) {
         const chicken = gameState.chickens[i];
 
         switch (chicken.state) {
             case ChickenConfig.stateMoving: {
-                const dx = chicken.dest.x - chicken.coords.x;
-                const dy = chicken.dest.y - chicken.coords.y;
-                const length = Math.sqrt(dx * dx + dy * dy);
-                chicken.coords.x += dx / length * chicken.v * elapsed;
-                chicken.coords.y += dy / length * chicken.v * elapsed;
+                chicken.coords.x += chicken.moveVec.x * chicken.v * elapsed;
+                chicken.coords.y += chicken.moveVec.y * chicken.v * elapsed;
 
-                // check if chicken has reached destination
-                if (Math.abs(dx) + Math.abs(dy) < 20) {
-                    setRandomDestination(chicken);
+                // check if chicken has reached destination or hits a wall
+                if (now - chicken.moveVecLastChange > chicken.moveDuration || !chicken.isWithinBounds(0, 0, display.width, display.height)) {
+                    chicken.setRandomDestination();
+                }
+
+                break;
+            }
+            case ChickenConfig.stateLeaving: {
+                chicken.coords.x += chicken.moveVec.x * chicken.v * elapsed;
+                chicken.coords.y += chicken.moveVec.y * chicken.v * elapsed;
+
+                if (!chicken.isWithinBounds(
+                    -images.huhnImage.naturalWidth, -images.huhnImage.naturalHeight,
+                    display.width + images.huhnImage.naturalWidth, display.height + images.huhnImage.naturalHeight)
+                ) {
+                    // chicken is leaving and moved off screen
+                    chickenToRemove.push(i);
                 }
                 break;
             }
@@ -252,7 +309,7 @@ function gameLoopMainGame(elapsed) {
             case ChickenConfig.stateLayingEgg: {
                 const layingTime = now - chicken.lastEggTimestamp;
                 if (layingTime > ChickenConfig.eggLayingTime) {
-                    setRandomDestination(chicken);
+                    chicken.setRandomDestination();
                     gameState.eggs.push(new Egg(new Point(chicken.coords.x, chicken.coords.y), Date.now(), 3000));
                     chicken.state = ChickenConfig.stateMoving;
                 }
@@ -261,6 +318,12 @@ function gameLoopMainGame(elapsed) {
             default:
                 console.log(`illegal chicken state => ${chicken.state}`);
         }
+    }
+    // remove chicken
+    for (let i = chickenToRemove.length - 1; i >= 0; i -= 1) {
+        const index = chickenToRemove[i];
+        gameState.chickens.splice(index, 1);
+        gameState.totalScore += 1;
     }
 
     // update eggs
@@ -294,8 +357,10 @@ function drawMainGame() {
     // instructions and info
     display.context.font = '2em sans-serif';
     display.context.fillStyle = 'black';
-    const scoreText = gameState.chickens.length + ' / ' + GameConfig.maxChickenQuantity;
-    display.context.fillText(scoreText, display.width - 40 - display.context.measureText(scoreText).width, 50);
+    const chickenCountText = `${gameState.chickens.length} / ${GameConfig.maxChickenQuantity} 🐣`;
+    display.context.fillText(chickenCountText, display.width - 40 - display.context.measureText(chickenCountText).width, 50);
+    const scoreText = `${gameState.totalScore} 🐓`;
+    display.context.fillText(scoreText, display.width - 40 - display.context.measureText(scoreText).width, 100);
 
     // draw eggs
     for (let i = 0; i < gameState.eggs.length; i += 1) {
