@@ -20,6 +20,7 @@ Try it out here: https://harcomaase.github.io/happy-mrs-chicken/
 - after the chicken layed the egg, it starts moving again
 - after some time a new chicken hatches from the egg
 - the new chicken is immediately able to lay eggs
+- there is a limit of on-screen chickens, you won't believe what happens when that limit is reached!
 
 ### technical
 
@@ -42,16 +43,17 @@ incorporated into each development cycle, as well as the acceptance tests.
 - [x] browser campatibility (webapp)
 - [ ] sprites / animations
 - [ ] sound
-- [ ] first game mechanics
+- [x] first game mechanics
   - [x] rough game loop
   - [x] lay egg on tap
   - [x] move somewhere else
-  - [ ] goal, or reset possibility
-- [ ] text, debug stats
+  - [x] goal, or reset possibility
+- [x] text, debug stats
 - [ ] game state, intro screen, end screen
   - [x] welcome screen
   - [ ] game over screen
 - [ ] game mechanics finalisation
 - [ ] levels? Faster movement?
+- [ ] multiplayer?
 
 
