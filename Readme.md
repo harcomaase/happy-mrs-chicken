@@ -29,7 +29,8 @@ Try it out here: https://harcomaase.github.io/happy-mrs-chicken/
 
 ### art
 
-- current graphics are placeholders only
+- images and animations are available
+- animations yet to be implemented
 
 ## very rough roadmap
 
