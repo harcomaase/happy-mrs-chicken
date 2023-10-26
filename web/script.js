@@ -361,6 +361,7 @@ function drawMainGame(now) {
     // instructions and info
     display.context.font = '2em sans-serif';
     display.context.fillStyle = 'black';
+    //TODO: replace emojis with actual pictures: chick -> egg, chicken -> chicken
     const chickenCountText = `${gameState.chickens.length} / ${GameConfig.maxChickenQuantity} 🐣`;
     display.context.fillText(chickenCountText, display.width - 40 - display.context.measureText(chickenCountText).width, 50);
     const scoreText = `${gameState.totalScore} 🐓`;
