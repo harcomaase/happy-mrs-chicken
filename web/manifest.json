@@ -2,14 +2,14 @@
     "name":"Happy Mrs. Chicken",
     "short_name":"happy mrs chicken",
     "start_url":"index.html",
-    "background_color":"white",
-    "theme_color":"gray",
+    "background_color":"blue",
+    "theme_color":"blue",
     "description":"a game about chicken",
     "display":"standalone",
     "icons":[
         {
-            "src":"huhn-white-bg.png",
-            "sizes":"192x192",
+            "src":"images/icon.png",
+            "sizes":"512x512",
             "type":"image/png"
         }
     ]
