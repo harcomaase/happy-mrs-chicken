@@ -58,6 +58,7 @@ const ChickenConfig = {
     // for durations between 1 and 6 seconds
     moveDurationBase: 1000,
     moveDurationVariance: 5000,
+    moveAnimationDurationPerSprite: 500,
 };
 class Chicken {
     constructor(coords) {
@@ -66,6 +67,7 @@ class Chicken {
         this.v = ChickenConfig.speed;
         this.state = ChickenConfig.stateMoving;
         this.jumpAfterEggStartTimestamp = 0;
+        this.moveAnimationStartTimestamp = Date.now();
     }
 
     setDestination(x, y) {
@@ -118,8 +120,12 @@ const gameState = new GameState();
 
 gameState.chickens.push(new Chicken(new Point(display.width / 2, display.height / 2)));
 
+
+
 const images = {};
 images.huhn = loadImage('huhn.svg', 128, 128);
+images.huhnMoving1 = loadImage('huhn-moving1.svg', 128, 128);
+images.huhnMoving2 = loadImage('huhn-moving2.svg', 128, 128);
 images.jump = loadImage('huhn-jump.svg', 128, 128);
 images.ei = loadImage('ei.svg', 128, 128);
 let imagesLoaded = 0;
@@ -193,7 +199,6 @@ function handleTapEvent(eventX, eventY) {
                 if (eventX >= chicken.coords.x - halfWidth && eventX <= chicken.coords.x + halfWidth
                     && eventY >= chicken.coords.y - halfHeight && eventY <= chicken.coords.y + halfHeight) {
                     // very simple collision detection
-                    //TODO: improve collision detection
                     handleChickenTap(chicken);
                     break;
                 }
@@ -344,11 +349,11 @@ function gameLoopMainGame(elapsed) {
         gameState.eggs.splice(index, 1);
     }
 
-    drawMainGame();
+    drawMainGame(now);
 
 }
 
-function drawMainGame() {
+function drawMainGame(now) {
     // clear screen
     display.context.fillStyle = "#FAFAFA";
     display.context.fillRect(0, 0, display.width, display.height);
@@ -368,18 +373,40 @@ function drawMainGame() {
     }
 
     // draw chickens
+    //TODO: moving animation & side change
     for (let i = 0; i < gameState.chickens.length; i += 1) {
         const chicken = gameState.chickens[i];
         switch (chicken.state) {
             case ChickenConfig.stateMoving:
             case ChickenConfig.stateLeaving: {
-                const image = images.huhn;
-                display.context.drawImage(image.image, chicken.coords.x - image.width / 2, chicken.coords.y - image.height / 2, image.width, image.height);
+                //TODO: abstract animations
+                const elapsedSinceAnimationStart = Math.max(now - chicken.moveAnimationStartTimestamp, 0);
+                const spriteQuantity = 2;
+                const y = elapsedSinceAnimationStart % (spriteQuantity * ChickenConfig.moveAnimationDurationPerSprite);
+                const spriteIndex = Math.floor(y / ChickenConfig.moveAnimationDurationPerSprite);
+                const sprites=[images.huhnMoving1, images.huhnMoving2];
+
+                const image = sprites[spriteIndex];
+                display.context.translate(chicken.coords.x - image.width / 2, chicken.coords.y - image.height / 2);
+                let relativeX = 0
+                if (chicken.moveVec.x > 0) {
+                    display.context.scale(-1, 1);
+                    relativeX = -image.width;
+                }
+                display.context.drawImage(image.image, relativeX, 0, image.width, image.height);
+                display.context.resetTransform();
                 break;
             }
             case ChickenConfig.stateJumping: {
                 const image = images.jump;
-                display.context.drawImage(image.image, chicken.coords.x - image.width / 2, chicken.coords.y - image.height / 2, image.width, image.height);
+                display.context.translate(chicken.coords.x - image.width / 2, chicken.coords.y - image.height / 2);
+                let relativeX = 0
+                if (chicken.moveVec.x > 0) {
+                    display.context.scale(-1, 1);
+                    relativeX = -image.width;
+                }
+                display.context.drawImage(image.image, relativeX, 0, image.width, image.height);
+                display.context.resetTransform();
                 break;
             }
         }
