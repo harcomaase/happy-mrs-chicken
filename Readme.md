@@ -16,8 +16,8 @@ Try it out here: https://harcomaase.github.io/happy-mrs-chicken/
 
 ### gameplay
 
-- you can tap on a moving chicken. It will stop and lay an egg
-- after the chicken layed the egg, it starts moving again
+- you can tap on a moving chicken
+- tapping will startle the chicken a bit, causing it to lay an egg and jump
 - after some time a new chicken hatches from the egg
 - the new chicken is immediately able to lay eggs
 - there is a limit of on-screen chickens, you won't believe what happens when that limit is reached!
@@ -30,7 +30,7 @@ Try it out here: https://harcomaase.github.io/happy-mrs-chicken/
 ### art
 
 - images and animations are available
-- animations yet to be implemented
+- sounds yet to be done
 
 ## very rough roadmap
 
@@ -42,7 +42,7 @@ incorporated into each development cycle, as well as the acceptance tests.
 - [x] draw picture on fullscreen canvas
 - [x] draw pictures on input event
 - [x] browser campatibility (webapp)
-- [ ] sprites / animations
+- [x] sprites / animations
 - [ ] sound
 - [x] first game mechanics
   - [x] rough game loop
@@ -50,11 +50,14 @@ incorporated into each development cycle, as well as the acceptance tests.
   - [x] move somewhere else
   - [x] goal, or reset possibility
 - [x] text, debug stats
-- [ ] game state, intro screen, end screen
+- [x] game state, intro screen, end screen
   - [x] welcome screen
-  - [ ] game over screen
+  - [x] game over screen (soft-reset of game)
 - [ ] game mechanics finalisation
-- [ ] levels? Faster movement?
-- [ ] multiplayer?
+
+## future roadmap / possible features
+
+- [ ] levels
+- [ ] multiplayer -> differently coloured teams
 
 
