@@ -3,6 +3,7 @@ registerServiceWorker();
 class Display {
     canvas = document.getElementById('canvas');
     context = canvas.getContext("2d");
+    backgroundColour = '#2db6fd';
 
     constructor(width, height) {
         this.width = width;
@@ -22,6 +23,7 @@ class Display {
 
 const display = new Display(0, 0);
 display.adjustCanvasDimensions();
+document.getElementsByTagName('body')[0].style.backgroundColor = display.backgroundColour;
 
 class Point {
     constructor(x, y) {
@@ -128,6 +130,8 @@ images.huhnMoving1 = loadImage('huhn-moving1.svg', 128, 128);
 images.huhnMoving2 = loadImage('huhn-moving2.svg', 128, 128);
 images.jump = loadImage('huhn-jump.svg', 128, 128);
 images.ei = loadImage('ei.svg', 128, 128);
+images.ei2 = loadImage('ei2.svg', 128, 128);
+images.ei3 = loadImage('ei3.svg', 128, 128);
 let imagesLoaded = 0;
 
 function loadImage(filename, width, height) {
@@ -355,17 +359,20 @@ function gameLoopMainGame(elapsed) {
 
 function drawMainGame(now) {
     // clear screen
-    display.context.fillStyle = "#FAFAFA";
+    display.context.fillStyle = display.backgroundColour;
     display.context.fillRect(0, 0, display.width, display.height);
 
     // instructions and info
     display.context.font = '2em sans-serif';
     display.context.fillStyle = 'black';
-    //TODO: replace emojis with actual pictures: chick -> egg, chicken -> chicken
-    const chickenCountText = `${gameState.chickens.length} / ${GameConfig.maxChickenQuantity} 🐣`;
-    display.context.fillText(chickenCountText, display.width - 40 - display.context.measureText(chickenCountText).width, 50);
-    const scoreText = `${gameState.totalScore} 🐓`;
-    display.context.fillText(scoreText, display.width - 40 - display.context.measureText(scoreText).width, 100);
+    // how many eggs have been layed
+    const chickenCountText = `${gameState.chickens.length} / ${GameConfig.maxChickenQuantity}`;
+    display.context.fillText(chickenCountText, display.width - 80 - display.context.measureText(chickenCountText).width, 50);
+    display.context.drawImage(images.ei3.image, display.width - 80, -20, 80, 80);
+    // how many chicken ran away already?
+    const scoreText = `${gameState.totalScore}`;
+    display.context.fillText(scoreText, display.width - 80 - display.context.measureText(scoreText).width, 120);
+    display.context.drawImage(images.huhn.image, display.width - 70, 75, 64, 64);
 
     // draw eggs
     for (let i = 0; i < gameState.eggs.length; i += 1) {
@@ -374,7 +381,6 @@ function drawMainGame(now) {
     }
 
     // draw chickens
-    //TODO: moving animation & side change
     for (let i = 0; i < gameState.chickens.length; i += 1) {
         const chicken = gameState.chickens[i];
         switch (chicken.state) {
@@ -385,7 +391,7 @@ function drawMainGame(now) {
                 const spriteQuantity = 2;
                 const y = elapsedSinceAnimationStart % (spriteQuantity * ChickenConfig.moveAnimationDurationPerSprite);
                 const spriteIndex = Math.floor(y / ChickenConfig.moveAnimationDurationPerSprite);
-                const sprites=[images.huhnMoving1, images.huhnMoving2];
+                const sprites = [images.huhnMoving1, images.huhnMoving2];
 
                 const image = sprites[spriteIndex];
                 display.context.translate(chicken.coords.x - image.width / 2, chicken.coords.y - image.height / 2);
@@ -417,7 +423,7 @@ function drawMainGame(now) {
 
 function drawWelcomeScreen() {
     // clear screen
-    display.context.fillStyle = "#FAFAFA";
+    display.context.fillStyle = display.backgroundColour;
     display.context.fillRect(0, 0, display.width, display.height);
 
     const timestamp = Date.now();
