@@ -320,7 +320,7 @@ function gameLoopMainGame(elapsed) {
             case ChickenConfig.stateJumping: {
                 //TODO: jump a bit sideways
                 const elapsedSinceJumpStart = now - chicken.jumpAfterEggStartTimestamp;
-                chicken.jumpOffset = Math.sin(elapsedSinceJumpStart / 5 / 180 * Math.PI) * images.huhn.height/1.5;
+                chicken.jumpOffset = Math.sin(elapsedSinceJumpStart / 5 / 180 * Math.PI) * images.huhn.height / 1.5;
 
                 if (chicken.jumpOffset < 0) {
                     chicken.setRandomDestination();
@@ -346,7 +346,6 @@ function gameLoopMainGame(elapsed) {
         const egg = gameState.eggs[i];
         if (egg.layedTime + egg.hatchingDuration < now) {
             // remove egg
-            //TODO: hatching animation
             eggsToRemove.push(i);
             // spawn chick0rn
             addChicken(egg.coords.x, egg.coords.y);
@@ -383,7 +382,13 @@ function drawMainGame(now) {
     // draw eggs
     for (let i = 0; i < gameState.eggs.length; i += 1) {
         const egg = gameState.eggs[i];
-        display.context.drawImage(images.ei.image, egg.coords.x - images.ei.width / 2, egg.coords.y - images.ei.height / 2, images.ei.width, images.ei.height);
+        let image = images.ei3;
+        if (egg.layedTime + egg.hatchingDuration / 3 > now) {
+            image = images.ei;
+        } else if (egg.layedTime + egg.hatchingDuration * 2 / 3 > now) {
+            image = images.ei2;
+        }
+        display.context.drawImage(image.image, egg.coords.x - image.width / 2, egg.coords.y - image.height / 2, image.width, image.height);
     }
 
     // draw chickens
