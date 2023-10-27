@@ -56,15 +56,16 @@ const ChickenConfig = {
     stateLeaving: 2,
 
     speed: 200,
-    jumpAfterEggDuration: 2000,
     // for durations between 1 and 6 seconds
     moveDurationBase: 1000,
     moveDurationVariance: 5000,
     moveAnimationDurationPerSprite: 500,
+    accelerationFactorAfterTap: 1.1,
 };
 class Chicken {
     constructor(coords) {
         this.coords = coords;
+        this.jumpOffset = 0;
         this.setRandomDestination();
         this.v = ChickenConfig.speed;
         this.state = ChickenConfig.stateMoving;
@@ -224,6 +225,9 @@ function handleChickenTap(chicken) {
     }
     chicken.state = ChickenConfig.stateJumping;
     chicken.jumpAfterEggStartTimestamp = Date.now();
+
+    //TODO: lay egg a bit to the side, depending where chicken is facing
+    gameState.eggs.push(new Egg(new Point(chicken.coords.x, chicken.coords.y), Date.now(), 4000));
 }
 
 function addChicken(x, y) {
@@ -314,12 +318,14 @@ function gameLoopMainGame(elapsed) {
             }
 
             case ChickenConfig.stateJumping: {
-                //TODO: laying egg animation
-                const layingTime = now - chicken.jumpAfterEggStartTimestamp;
-                if (layingTime > ChickenConfig.jumpAfterEggDuration) {
+                //TODO: jump a bit sideways
+                const elapsedSinceJumpStart = now - chicken.jumpAfterEggStartTimestamp;
+                chicken.jumpOffset = Math.sin(elapsedSinceJumpStart / 5 / 180 * Math.PI) * images.huhn.height/1.5;
+
+                if (chicken.jumpOffset < 0) {
                     chicken.setRandomDestination();
-                    gameState.eggs.push(new Egg(new Point(chicken.coords.x, chicken.coords.y), Date.now(), 3000));
                     chicken.state = ChickenConfig.stateMoving;
+                    chicken.v *= ChickenConfig.accelerationFactorAfterTap;
                 }
                 break;
             }
@@ -387,6 +393,7 @@ function drawMainGame(now) {
             case ChickenConfig.stateMoving:
             case ChickenConfig.stateLeaving: {
                 //TODO: abstract animations
+                //TODO: reduce duration per sprite based on speed of chicken
                 const elapsedSinceAnimationStart = Math.max(now - chicken.moveAnimationStartTimestamp, 0);
                 const spriteQuantity = 2;
                 const y = elapsedSinceAnimationStart % (spriteQuantity * ChickenConfig.moveAnimationDurationPerSprite);
@@ -412,7 +419,7 @@ function drawMainGame(now) {
                     display.context.scale(-1, 1);
                     relativeX = -image.width;
                 }
-                display.context.drawImage(image.image, relativeX, 0, image.width, image.height);
+                display.context.drawImage(image.image, relativeX, -chicken.jumpOffset, image.width, image.height);
                 display.context.resetTransform();
                 break;
             }
