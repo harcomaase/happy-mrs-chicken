@@ -158,10 +158,38 @@ function checkLoadedImages() {
 function init() {
     // seems like touch events always also generate a mousedown event, so we
     // don't need the touch event
+    //TODO: or do we?
     canvas.addEventListener(
         "click",
         (e) => {
             handleTapEvent(e.clientX, e.clientY);
+        }, false
+    );
+
+    // quick-fix for small children not being able to play well on touchpads.
+    // pressing any key acts as if the next moving chicken has been tapped :)
+    document.addEventListener(
+        "keydown",
+        (e) => {
+            console.log('registered keypress');
+            switch (gameState.phase) {
+                case GameConfig.phaseWelcomeScreen: {
+                    // tapping on welcome screen leads to the main game
+                    console.log('entering main game');
+                    gameState.welcomeScreenTransitionStart = Date.now();
+                    break;
+                }
+                case GameConfig.phaseMainGame: {
+                    // check if chicken was tapped
+                    for (let i = 0; i < gameState.chickens.length; i += 1) {
+                        const chicken = gameState.chickens[i];
+                        if (chicken.state === ChickenConfig.stateMoving) {
+                            handleChickenTap(chicken);
+                            break;
+                        }
+                    }
+                }
+            }
         }, false
     );
 
