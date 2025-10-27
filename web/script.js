@@ -1,13 +1,37 @@
 registerServiceWorker();
 
 class Display {
-    canvas = document.getElementById('canvas');
-    context = canvas.getContext("2d");
-    backgroundColour = '#2db6fd';
+    /**
+     * @type {Number}
+     */
+    width;
+    /**
+     * @type {Number}
+     */
+    height;
+    /**
+     * @type {HTMLCanvasElement}
+     */
+    canvas;
+    /**
+     * @type {CanvasRenderingContext2D}
+     */
+    context;
+    /**
+     * @type {String}
+     */
+    backgroundColour;
 
+    /**
+     * @param {Number} width
+     * @param {Number} height
+     */
     constructor(width, height) {
         this.width = width;
         this.height = height;
+        this.canvas = /** @type {HTMLCanvasElement} */(document.getElementById('canvas'));
+        this.context =/** @type {CanvasRenderingContext2D} */ (this.canvas.getContext("2d"));
+        this.backgroundColour = '#2db6fd';
     }
 
     adjustCanvasDimensions() {
@@ -26,6 +50,18 @@ display.adjustCanvasDimensions();
 document.getElementsByTagName('body')[0].style.backgroundColor = display.backgroundColour;
 
 class Point {
+    /**
+     * @type {Number}
+     */
+    x;
+    /**
+     * @type {Number}
+     */
+    y;
+    /**
+     * @param {Number} x
+     * @param {Number} y
+     */
     constructor(x, y) {
         this.x = x;
         this.y = y;
@@ -43,6 +79,23 @@ class Point {
 }
 
 class Egg {
+    /**
+     * @type {Point}
+     */
+    coords;
+    /**
+     * @type {Number}
+     */
+    layedTime;
+    /**
+     * @type {Number}
+     */
+    hatchingDuration;
+    /**
+     * @param {Point} coords
+     * @param {Number} layedTime
+     * @param {Number} hatchingDuration
+     */
     constructor(coords, layedTime, hatchingDuration) {
         this.coords = coords;
         this.layedTime = layedTime;
@@ -63,6 +116,45 @@ const ChickenConfig = {
     accelerationFactorAfterTap: 1.1,
 };
 class Chicken {
+    /**
+     * @type {Point}
+     */
+    coords;
+    /**
+     * @type {Number}
+     */
+    jumpOffset;
+    /**
+     * @type {Number}
+     */
+    v;
+    /**
+     * @type {Number}
+     */
+    state;
+    /**
+     * @type {Number}
+     */
+    jumpAfterEggStartTimestamp;
+    /**
+     * @type {Number}
+     */
+    moveAnimationStartTimestamp;
+    /**
+     * @type {Point}
+     */
+    moveVec;
+    /**
+     * @type {Number}
+     */
+    moveVecLastChange;
+    /**
+     * @type {Number}
+     */
+    moveDuration;
+    /**
+     * @param {Point} coords
+     */
     constructor(coords) {
         this.coords = coords;
         this.jumpOffset = 0;
@@ -73,6 +165,10 @@ class Chicken {
         this.moveAnimationStartTimestamp = Date.now();
     }
 
+    /**
+     * @param {Number} x
+     * @param {Number} y
+     */
     setDestination(x, y) {
         this.moveVec = new Point(x - this.coords.x, y - this.coords.y);
         this.moveVec.normaliseVector();
@@ -84,6 +180,12 @@ class Chicken {
         this.setDestination(Math.random() * display.width, Math.random() * display.height);
     }
 
+    /**
+     * @param {Number} lowX
+     * @param {Number} lowY
+     * @param {Number} highX
+     * @param {Number} highY
+     */
     isWithinBounds(lowX, lowY, highX, highY) {
         return this.coords.x > lowX && this.coords.y > lowY && this.coords.x < highX && this.coords.y < highY;
     }
@@ -98,6 +200,35 @@ const GameConfig = {
     maxChickenQuantity: 25,
 }
 class GameState {
+
+    /**
+    * @type {Number}
+    */
+    gameInitialisedTimestamp;
+    /**
+    * @type {Number}
+    */
+    welcomeScreenTransitionStart;
+    /**
+    * @type {Boolean}
+    */
+    welcomeScreenJumpDone;
+    /**
+    * @type {Array<Chicken>}
+    */
+    chickens;
+    /**
+    * @type {Array<Egg>}
+    */
+    eggs;
+    /**
+    * @type {Number}
+    */
+    gameLoopPreviousTimestamp;
+    /**
+    * @type {Number}
+    */
+    totalScore;
     constructor() {
         this.phase = GameConfig.phaseWelcomeScreen;
         this.reset();
@@ -123,7 +254,9 @@ const gameState = new GameState();
 
 gameState.chickens.push(new Chicken(new Point(display.width / 2, display.height / 2)));
 
-
+const audioContext = new AudioContext();
+const audios = {};
+loadAudio('chicken-cluck.ogg', audios, 'cluck', audioContext);
 
 const images = {};
 images.huhn = loadImage('huhn.svg', 128, 128);
@@ -133,11 +266,37 @@ images.jump = loadImage('huhn-jump.svg', 128, 128);
 images.ei = loadImage('ei.svg', 128, 128);
 images.ei2 = loadImage('ei2.svg', 128, 128);
 images.ei3 = loadImage('ei3.svg', 128, 128);
-let imagesLoaded = 0;
 
+let filesLoaded = 0;
+
+/**
+ * @param {String} filename
+ * @param {Object} audios
+ * @param {String} key
+ * @param {AudioContext} audioContext
+ */
+function loadAudio(filename, audios, key, audioContext) {
+    fetch(`./audios/${filename}`)
+        .then((file) => {
+            file.arrayBuffer()
+                .then((arrayBuffer) => {
+                    audioContext.decodeAudioData(arrayBuffer)
+                        .then((audioBuffer) => {
+                            checkLoadedFiles();
+                            audios[key] = audioBuffer;
+                        });
+                });
+        });
+}
+
+/**
+ * @param {String} filename
+ * @param {Number} width
+ * @param {Number} height
+ */
 function loadImage(filename, width, height) {
     const image = new Image();
-    image.onload = checkLoadedImages;
+    image.onload = checkLoadedFiles;
     image.src = `./images/${filename}`;
     return { image: image, width: width, height: height };
 }
@@ -148,9 +307,9 @@ function registerServiceWorker() {
     }
 }
 
-function checkLoadedImages() {
-    if (++imagesLoaded >= Object.keys(images).length) {
-        imagesLoaded = 0;// reset somehow
+function checkLoadedFiles() {
+    if (++filesLoaded >= Object.keys(audios).length + Object.keys(images).length) {
+        filesLoaded = 0; // reset somehow
         init();
     }
 }
@@ -159,7 +318,7 @@ function init() {
     // seems like touch events always also generate a mousedown event, so we
     // don't need the touch event
     //TODO: or do we?
-    canvas.addEventListener(
+    display.canvas.addEventListener(
         "click",
         (e) => {
             handleTapEvent(e.clientX, e.clientY);
@@ -170,7 +329,7 @@ function init() {
     // pressing any key acts as if the next moving chicken has been tapped :)
     document.addEventListener(
         "keydown",
-        (e) => {
+        (_e) => {
             console.log('registered keypress');
             switch (gameState.phase) {
                 case GameConfig.phaseWelcomeScreen: {
@@ -204,6 +363,10 @@ function init() {
 }
 
 
+/**
+ * @param {Number} eventX
+ * @param {Number} eventY
+ */
 function handleTapEvent(eventX, eventY) {
     console.log(`handling event with coords: ${eventX}|${eventY}`);
 
@@ -246,6 +409,9 @@ function handleTapEvent(eventX, eventY) {
 
 }
 
+/**
+ * @param {Chicken} chicken
+ */
 function handleChickenTap(chicken) {
     if (chicken.state !== ChickenConfig.stateMoving) {
         // only moving chicken are tap-able
@@ -256,8 +422,14 @@ function handleChickenTap(chicken) {
 
     //TODO: lay egg a bit to the side, depending where chicken is facing
     gameState.eggs.push(new Egg(new Point(chicken.coords.x, chicken.coords.y), Date.now(), 4000));
+
+    //TODO: play sound
 }
 
+/**
+ * @param {Number} x
+ * @param {Number} y
+ */
 function addChicken(x, y) {
     gameState.chickens.push(new Chicken(new Point(x, y)));
     if (gameState.chickens.length > GameConfig.maxChickenQuantity) {
@@ -286,6 +458,9 @@ function addChicken(x, y) {
 
 }
 
+/**
+ * @param {Number} timestamp
+ */
 function gameLoop(timestamp) {
     const elapsed = (timestamp - gameState.gameLoopPreviousTimestamp) / 1000;
     gameState.gameLoopPreviousTimestamp = timestamp;
@@ -311,6 +486,9 @@ function gameLoop(timestamp) {
     window.requestAnimationFrame(gameLoop);
 }
 
+/**
+ * @param {Number} elapsed
+ */
 function gameLoopMainGame(elapsed) {
     const now = Date.now();
 
@@ -390,6 +568,9 @@ function gameLoopMainGame(elapsed) {
 
 }
 
+/**
+ * @param {Number} now
+ */
 function drawMainGame(now) {
     // clear screen
     display.context.fillStyle = display.backgroundColour;
