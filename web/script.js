@@ -359,6 +359,23 @@ class ImageWrapper {
         this.image = image;
     }
 
+    /**
+     * @param {Point} coords
+     * @param {Point|undefined} scale
+     */
+    draw(coords, flip = false, dy = 0, scale = undefined) {
+        display.context.translate(coords.x - this.width / 2, coords.y - this.height / 2);
+        let relativeX = 0
+        if (flip) {
+            display.context.scale(-1, 1);
+            relativeX = -this.width;
+        }
+        if (scale) {
+            display.context.scale(scale.x, scale.y);
+        }
+        display.context.drawImage(this.image, relativeX, dy, this.width, this.height);
+        display.context.resetTransform();
+    }
 }
 
 class Visuals {
@@ -722,7 +739,8 @@ function drawMainGame(now) {
         } else if (egg.layedTime + egg.hatchingDuration * 2 / 3 > now) {
             image = visuals.getImage('ei2');
         }
-        display.context.drawImage(image.image, egg.coords.x - image.width / 2, egg.coords.y - image.height / 2, image.width, image.height);
+        // display.context.drawImage(image.image, egg.coords.x - image.width / 2, egg.coords.y - image.height / 2, image.width, image.height);
+        image.draw(egg.coords);
     }
 
     // draw chickens
@@ -740,26 +758,12 @@ function drawMainGame(now) {
                 const sprites = [visuals.getImage('huhnMoving1'), visuals.getImage('huhnMoving2')];
 
                 const image = sprites[spriteIndex];
-                display.context.translate(chicken.coords.x - image.width / 2, chicken.coords.y - image.height / 2);
-                let relativeX = 0
-                if (chicken.moveVec.x > 0) {
-                    display.context.scale(-1, 1);
-                    relativeX = -image.width;
-                }
-                display.context.drawImage(image.image, relativeX, 0, image.width, image.height);
-                display.context.resetTransform();
+                image.draw(chicken.coords, chicken.moveVec.x > 0);
                 break;
             }
             case ChickenConfig.stateJumping: {
                 const image = visuals.getImage('jump');
-                display.context.translate(chicken.coords.x - image.width / 2, chicken.coords.y - image.height / 2);
-                let relativeX = 0
-                if (chicken.moveVec.x > 0) {
-                    display.context.scale(-1, 1);
-                    relativeX = -image.width;
-                }
-                display.context.drawImage(image.image, relativeX, -chicken.jumpOffset, image.width, image.height);
-                display.context.resetTransform();
+                image.draw(chicken.coords, chicken.moveVec.x > 0, -chicken.jumpOffset)
                 break;
             }
         }
@@ -810,10 +814,7 @@ function drawWelcomeScreen() {
         const startX = display.width / 2 - huhnImage.width / 2 * transitionScale;
         const startY = display.height / 2 - huhnImage.height / 2 * transitionScale;
 
-        display.context.translate(startX, startY);
-        display.context.scale(transitionScale, transitionScale);
-        display.context.drawImage(huhnImage.image, 0, 0, huhnImage.width, huhnImage.height);
-        display.context.resetTransform();
+        huhnImage.draw(new Point(startX, startY), false, 0, new Point(transitionScale, transitionScale));
         return;
     }
 
@@ -821,9 +822,6 @@ function drawWelcomeScreen() {
     const startX = display.width / 2 - huhnImage.width / 2 * scale;
     const startY = display.height / 2 - huhnImage.height / 2 * scale;
 
-    display.context.translate(startX, startY);
-    display.context.scale(scale, scale);
-    display.context.drawImage(huhnImage.image, 0, -jumpY, huhnImage.width, huhnImage.height);
-    display.context.resetTransform();
+    huhnImage.draw(new Point(startX, startY), false, -jumpY, new Point(scale, scale));
 }
 
