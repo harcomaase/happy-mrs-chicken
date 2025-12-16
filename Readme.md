@@ -43,7 +43,7 @@ incorporated into each development cycle, as well as the acceptance tests.
 - [x] draw pictures on input event
 - [x] browser campatibility (webapp)
 - [x] sprites / animations
-- [ ] sound
+- [x] sound
 - [x] first game mechanics
   - [x] rough game loop
   - [x] lay egg on tap

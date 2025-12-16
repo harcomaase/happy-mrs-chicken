@@ -199,6 +199,7 @@ const GameConfig = {
 
     maxChickenQuantity: 25,
 }
+
 class GameState {
 
     /**
@@ -250,56 +251,150 @@ class GameState {
     }
 }
 
+class Sound {
+    /**
+    * @type {AudioContext}
+    */
+    audioContext;
+    /**
+    * @type {AudioWrapper[]}
+    */
+    audios;
+    constructor() {
+        this.audioContext = new AudioContext();
+        this.audios = [];
+    }
+
+    /**
+     * @param {String} filename
+     * @param {String} key
+     */
+    loadAudio(filename, key) {
+        fetch(`./audios/${filename}`)
+            .then((file) => {
+                file.arrayBuffer()
+                    .then((arrayBuffer) => {
+                        this.audioContext.decodeAudioData(arrayBuffer)
+                            .then((audioBuffer) => {
+                                this.audios.push(new AudioWrapper(key, audioBuffer));
+                                checkLoadedFiles();
+                            });
+                    });
+            });
+    }
+
+    /**
+     * @param {String} key
+     *  @returns {AudioWrapper}
+     */
+    getAudio(key) {
+        return this.audios[key];
+    }
+}
+
+class AudioWrapper {
+    /**
+    * @type {String}
+    */
+    name;
+    /**
+    * @type {AudioBuffer}
+    */
+    audioBuffer;
+
+    /**
+     * @param {String} name
+     * @param {AudioBuffer} audioBuffer
+     */
+    constructor(name, audioBuffer) {
+        this.name = name;
+        this.audioBuffer = audioBuffer;
+    }
+}
+
+class ImageWrapper {
+    /**
+     * @type {String}
+     */
+    name;
+    /**
+     * @type {HTMLImageElement}
+     */
+    image;
+    /**
+     * @type {Number}
+     */
+    width;
+    /**
+     * @type {Number}
+     */
+    height;
+    /**
+     * @param {string} name
+     * @param {HTMLImageElement} image
+     * @param {number} width
+     * @param {number} height
+     */
+    constructor(name, image, width, height) {
+        this.name = name;
+        this.width = width;
+        this.height = height;
+        this.image = image;
+    }
+
+}
+
+class Visuals {
+    /**
+     * @type {ImageWrapper[]}
+     */
+    images;
+
+    constructor() {
+        this.images = [];
+    }
+
+    /**
+     * @param {string} name
+     * @param {String} filename
+     * @param {number} width
+     * @param {number} height
+     */
+    loadImage(name, filename, width, height) {
+        const image = new Image();
+        image.onload = checkLoadedFiles;
+        image.src = `./images/${filename}`;
+
+        const w = new ImageWrapper(name, image, width, height);
+        this.images.push(w);
+    }
+
+    /**
+     * @param {String} key
+     *  @returns {ImageWrapper}
+     */
+    getImage(key) {
+        return this.images.find((e) => e.name === key);
+    }
+}
+
 const gameState = new GameState();
 
 gameState.chickens.push(new Chicken(new Point(display.width / 2, display.height / 2)));
 
-const audioContext = new AudioContext();
-const audios = {};
-loadAudio('chicken-cluck.ogg', audios, 'cluck', audioContext);
+const sound = new Sound();
+sound.loadAudio('chicken-cluck.ogg', 'cluck');
 
-const images = {};
-images.huhn = loadImage('huhn.svg', 128, 128);
-images.huhnMoving1 = loadImage('huhn-moving1.svg', 128, 128);
-images.huhnMoving2 = loadImage('huhn-moving2.svg', 128, 128);
-images.jump = loadImage('huhn-jump.svg', 128, 128);
-images.ei = loadImage('ei.svg', 128, 128);
-images.ei2 = loadImage('ei2.svg', 128, 128);
-images.ei3 = loadImage('ei3.svg', 128, 128);
+const visuals = new Visuals();
+visuals.loadImage('huhn', 'huhn.svg', 128, 128);
+visuals.loadImage('huhnMoving1', 'huhn-moving1.svg', 128, 128);
+visuals.loadImage('huhnMoving2', 'huhn-moving2.svg', 128, 128);
+visuals.loadImage('jump', 'huhn-jump.svg', 128, 128);
+visuals.loadImage('ei', 'ei.svg', 128, 128);
+visuals.loadImage('ei2', 'ei2.svg', 128, 128);
+visuals.loadImage('ei3', 'ei3.svg', 128, 128);
 
 let filesLoaded = 0;
-
-/**
- * @param {String} filename
- * @param {Object} audios
- * @param {String} key
- * @param {AudioContext} audioContext
- */
-function loadAudio(filename, audios, key, audioContext) {
-    fetch(`./audios/${filename}`)
-        .then((file) => {
-            file.arrayBuffer()
-                .then((arrayBuffer) => {
-                    audioContext.decodeAudioData(arrayBuffer)
-                        .then((audioBuffer) => {
-                            checkLoadedFiles();
-                            audios[key] = audioBuffer;
-                        });
-                });
-        });
-}
-
-/**
- * @param {String} filename
- * @param {Number} width
- * @param {Number} height
- */
-function loadImage(filename, width, height) {
-    const image = new Image();
-    image.onload = checkLoadedFiles;
-    image.src = `./images/${filename}`;
-    return { image: image, width: width, height: height };
-}
 
 function registerServiceWorker() {
     if ("serviceWorker" in navigator) {
@@ -308,7 +403,7 @@ function registerServiceWorker() {
 }
 
 function checkLoadedFiles() {
-    if (++filesLoaded >= Object.keys(audios).length + Object.keys(images).length) {
+    if (++filesLoaded >= sound.audios.length + visuals.images.length) {
         filesLoaded = 0; // reset somehow
         init();
     }
@@ -388,7 +483,7 @@ function handleTapEvent(eventX, eventY) {
 
         case GameConfig.phaseMainGame: {
             // check if chicken was tapped
-            const halfWidth = images.huhn.width / 2;
+            const halfWidth = visuals.images.huhn.width / 2;
             const halfHeight = images.huhn.height / 2;
             for (let i = 0; i < gameState.chickens.length; i += 1) {
                 const chicken = gameState.chickens[i];
@@ -420,8 +515,12 @@ function handleChickenTap(chicken) {
     chicken.state = ChickenConfig.stateJumping;
     chicken.jumpAfterEggStartTimestamp = Date.now();
 
-    //TODO: lay egg a bit to the side, depending where chicken is facing
-    gameState.eggs.push(new Egg(new Point(chicken.coords.x, chicken.coords.y), Date.now(), 4000));
+    // lay egg a bit to the side, depending where chicken is facing
+    let dx = 30;
+    if (chicken.moveVec.x > 0) {
+        dx = -dx;
+    }
+    gameState.eggs.push(new Egg(new Point(chicken.coords.x + dx, chicken.coords.y), Date.now(), 4000));
 
     //TODO: play sound
 }
@@ -524,9 +623,10 @@ function gameLoopMainGame(elapsed) {
             }
 
             case ChickenConfig.stateJumping: {
-                //TODO: jump a bit sideways
                 const elapsedSinceJumpStart = now - chicken.jumpAfterEggStartTimestamp;
                 chicken.jumpOffset = Math.sin(elapsedSinceJumpStart / 5 / 180 * Math.PI) * images.huhn.height / 1.5;
+                // jump a bit sideways
+                chicken.coords.x += 0.1 * elapsed;
 
                 if (chicken.jumpOffset < 0) {
                     chicken.setRandomDestination();
