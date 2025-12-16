@@ -276,6 +276,7 @@ class Sound {
                     .then((arrayBuffer) => {
                         this.audioContext.decodeAudioData(arrayBuffer)
                             .then((audioBuffer) => {
+                                console.log('loaded audio: ' + key + ' / ' + filename);
                                 this.audios.push(new AudioWrapper(key, audioBuffer));
                                 checkLoadedFiles();
                             });
@@ -285,10 +286,26 @@ class Sound {
 
     /**
      * @param {String} key
-     *  @returns {AudioWrapper}
      */
-    getAudio(key) {
-        return this.audios[key];
+    playAudio(key) {
+        const a = this.audios.find((a) => a.name === key);
+        if (!a) {
+            console.log('can not play audio: ' + key);
+            return;
+        }
+        if (this.audioContext.state === "suspended") {
+            this.audioContext.resume();
+        }
+        // play the audio
+        const audioSource = this.audioContext.createBufferSource();
+        audioSource.buffer = a.audioBuffer;
+        audioSource.connect(this.audioContext.destination);
+        audioSource.start();
+    }
+
+    playRandomAudio() {
+        const i = Math.floor(Math.random() * this.audios.length);
+        this.playAudio(this.audios[i].name);
     }
 }
 
@@ -352,6 +369,7 @@ class Visuals {
 
     constructor() {
         this.images = [];
+        this.loadImage('fallback', 'fallback.png', 128, 128);
     }
 
     /**
@@ -365,6 +383,7 @@ class Visuals {
         image.onload = checkLoadedFiles;
         image.src = `./images/${filename}`;
 
+        console.log('loaded image: ' + name + ' / ' + filename);
         const w = new ImageWrapper(name, image, width, height);
         this.images.push(w);
     }
@@ -374,7 +393,11 @@ class Visuals {
      *  @returns {ImageWrapper}
      */
     getImage(key) {
-        return this.images.find((e) => e.name === key);
+        const image = this.images.find((e) => e.name === key);
+        if (image) {
+            return image;
+        }
+        return this.images[0]; // fallback
     }
 }
 
@@ -483,8 +506,9 @@ function handleTapEvent(eventX, eventY) {
 
         case GameConfig.phaseMainGame: {
             // check if chicken was tapped
-            const halfWidth = visuals.images.huhn.width / 2;
-            const halfHeight = images.huhn.height / 2;
+            const image = visuals.getImage('huhn');
+            const halfWidth = image.width / 2;
+            const halfHeight = image.height / 2;
             for (let i = 0; i < gameState.chickens.length; i += 1) {
                 const chicken = gameState.chickens[i];
                 if (eventX >= chicken.coords.x - halfWidth && eventX <= chicken.coords.x + halfWidth
@@ -522,7 +546,7 @@ function handleChickenTap(chicken) {
     }
     gameState.eggs.push(new Egg(new Point(chicken.coords.x + dx, chicken.coords.y), Date.now(), 4000));
 
-    //TODO: play sound
+    sound.playAudio('cluck');
 }
 
 /**
@@ -545,7 +569,7 @@ function addChicken(x, y) {
             chicken.state = ChickenConfig.stateLeaving;
 
             // chicken should run through the middle of the screen, with a bit of random
-            const variance = images.huhn.width;
+            const variance = visuals.getImage('huhn').width;
             const destX = display.width / 2 - variance / 2 + Math.random() * variance;
             const destY = display.height / 2 - variance / 2 + Math.random() * variance;
             chicken.setDestination(destX, destY);
@@ -595,6 +619,7 @@ function gameLoopMainGame(elapsed) {
     // calculate chicken movement
     for (let i = 0; i < gameState.chickens.length; i += 1) {
         const chicken = gameState.chickens[i];
+        const image = visuals.getImage('huhn');
 
         switch (chicken.state) {
             case ChickenConfig.stateMoving: {
@@ -613,8 +638,8 @@ function gameLoopMainGame(elapsed) {
                 chicken.coords.y += chicken.moveVec.y * chicken.v * elapsed;
 
                 if (!chicken.isWithinBounds(
-                    -images.huhn.width, -images.huhn.height,
-                    display.width + images.huhn.width, display.height + images.huhn.height)
+                    -image.width, -image.height,
+                    display.width + image.width, display.height + image.height)
                 ) {
                     // chicken is leaving and moved off screen
                     chickenToRemove.push(i);
@@ -624,7 +649,7 @@ function gameLoopMainGame(elapsed) {
 
             case ChickenConfig.stateJumping: {
                 const elapsedSinceJumpStart = now - chicken.jumpAfterEggStartTimestamp;
-                chicken.jumpOffset = Math.sin(elapsedSinceJumpStart / 5 / 180 * Math.PI) * images.huhn.height / 1.5;
+                chicken.jumpOffset = Math.sin(elapsedSinceJumpStart / 5 / 180 * Math.PI) * image.height / 1.5;
                 // jump a bit sideways
                 chicken.coords.x += 0.1 * elapsed;
 
@@ -682,20 +707,20 @@ function drawMainGame(now) {
     // how many eggs have been layed
     const chickenCountText = `${gameState.chickens.length} / ${GameConfig.maxChickenQuantity}`;
     display.context.fillText(chickenCountText, display.width - 80 - display.context.measureText(chickenCountText).width, 50);
-    display.context.drawImage(images.ei3.image, display.width - 80, -20, 80, 80);
+    display.context.drawImage(visuals.getImage('ei3').image, display.width - 80, -20, 80, 80);
     // how many chicken ran away already?
     const scoreText = `${gameState.totalScore}`;
     display.context.fillText(scoreText, display.width - 80 - display.context.measureText(scoreText).width, 120);
-    display.context.drawImage(images.huhn.image, display.width - 70, 75, 64, 64);
+    display.context.drawImage(visuals.getImage('huhn').image, display.width - 70, 75, 64, 64);
 
     // draw eggs
     for (let i = 0; i < gameState.eggs.length; i += 1) {
         const egg = gameState.eggs[i];
-        let image = images.ei3;
+        let image = visuals.getImage('ei3');
         if (egg.layedTime + egg.hatchingDuration / 3 > now) {
-            image = images.ei;
+            image = visuals.getImage('ei');
         } else if (egg.layedTime + egg.hatchingDuration * 2 / 3 > now) {
-            image = images.ei2;
+            image = visuals.getImage('ei2');
         }
         display.context.drawImage(image.image, egg.coords.x - image.width / 2, egg.coords.y - image.height / 2, image.width, image.height);
     }
@@ -712,7 +737,7 @@ function drawMainGame(now) {
                 const spriteQuantity = 2;
                 const y = elapsedSinceAnimationStart % (spriteQuantity * ChickenConfig.moveAnimationDurationPerSprite);
                 const spriteIndex = Math.floor(y / ChickenConfig.moveAnimationDurationPerSprite);
-                const sprites = [images.huhnMoving1, images.huhnMoving2];
+                const sprites = [visuals.getImage('huhnMoving1'), visuals.getImage('huhnMoving2')];
 
                 const image = sprites[spriteIndex];
                 display.context.translate(chicken.coords.x - image.width / 2, chicken.coords.y - image.height / 2);
@@ -726,7 +751,7 @@ function drawMainGame(now) {
                 break;
             }
             case ChickenConfig.stateJumping: {
-                const image = images.jump;
+                const image = visuals.getImage('jump');
                 display.context.translate(chicken.coords.x - image.width / 2, chicken.coords.y - image.height / 2);
                 let relativeX = 0
                 if (chicken.moveVec.x > 0) {
@@ -755,9 +780,10 @@ function drawWelcomeScreen() {
     const slowingFactor = 10;
     const scale = 2;
 
+    const huhnImage = visuals.getImage('huhn');
 
     // jumping chicken animation as welcome screen
-    let jumpY = -Math.cos(elapsedSinceStart / slowingFactor / 180 * Math.PI) * images.huhn.height / 2;
+    let jumpY = -Math.cos(elapsedSinceStart / slowingFactor / 180 * Math.PI) * huhnImage.height / 2;
     if (jumpY < 0 && !gameState.welcomeScreenJumpDone) {
         jumpY = 0;
     }
@@ -781,23 +807,23 @@ function drawWelcomeScreen() {
         const transitionProgressInPercent = elapsedSinceTransitionStart / transitionDurationInMillis;
         const transitionScale = scale - transitionProgressInPercent;
 
-        const startX = display.width / 2 - images.huhn.width / 2 * transitionScale;
-        const startY = display.height / 2 - images.huhn.height / 2 * transitionScale;
+        const startX = display.width / 2 - huhnImage.width / 2 * transitionScale;
+        const startY = display.height / 2 - huhnImage.height / 2 * transitionScale;
 
         display.context.translate(startX, startY);
         display.context.scale(transitionScale, transitionScale);
-        display.context.drawImage(images.huhn.image, 0, 0, images.huhn.width, images.huhn.height);
+        display.context.drawImage(huhnImage.image, 0, 0, huhnImage.width, huhnImage.height);
         display.context.resetTransform();
         return;
     }
 
     // default welcome screen: big jumping chicken
-    const startX = display.width / 2 - images.huhn.width / 2 * scale;
-    const startY = display.height / 2 - images.huhn.height / 2 * scale;
+    const startX = display.width / 2 - huhnImage.width / 2 * scale;
+    const startY = display.height / 2 - huhnImage.height / 2 * scale;
 
     display.context.translate(startX, startY);
     display.context.scale(scale, scale);
-    display.context.drawImage(images.huhn.image, 0, -jumpY, images.huhn.width, images.huhn.height);
+    display.context.drawImage(huhnImage.image, 0, -jumpY, huhnImage.width, huhnImage.height);
     display.context.resetTransform();
 }
 
