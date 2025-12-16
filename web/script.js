@@ -369,16 +369,16 @@ class Visuals {
 
     constructor() {
         this.images = [];
-        this.loadImage('fallback', 'fallback.png', 128, 128);
+        this.loadImage('fallback', 'fallback.png');
     }
 
     /**
      * @param {string} name
      * @param {String} filename
-     * @param {number} width
-     * @param {number} height
      */
-    loadImage(name, filename, width, height) {
+    loadImage(name, filename) {
+        const width = 128;
+        const height = 128;
         const image = new Image();
         image.onload = checkLoadedFiles;
         image.src = `./images/${filename}`;
@@ -409,13 +409,13 @@ const sound = new Sound();
 sound.loadAudio('chicken-cluck.ogg', 'cluck');
 
 const visuals = new Visuals();
-visuals.loadImage('huhn', 'huhn.svg', 128, 128);
-visuals.loadImage('huhnMoving1', 'huhn-moving1.svg', 128, 128);
-visuals.loadImage('huhnMoving2', 'huhn-moving2.svg', 128, 128);
-visuals.loadImage('jump', 'huhn-jump.svg', 128, 128);
-visuals.loadImage('ei', 'ei.svg', 128, 128);
-visuals.loadImage('ei2', 'ei2.svg', 128, 128);
-visuals.loadImage('ei3', 'ei3.svg', 128, 128);
+visuals.loadImage('huhn', 'huhn.svg');
+visuals.loadImage('huhnMoving1', 'huhn-moving1.svg');
+visuals.loadImage('huhnMoving2', 'huhn-moving2.svg');
+visuals.loadImage('jump', 'huhn-jump.svg');
+visuals.loadImage('ei', 'ei.svg');
+visuals.loadImage('ei2', 'ei2.svg');
+visuals.loadImage('ei3', 'ei3.svg');
 
 let filesLoaded = 0;
 
