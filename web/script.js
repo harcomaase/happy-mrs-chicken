@@ -293,9 +293,6 @@ class Sound {
             console.log('can not play audio: ' + key);
             return;
         }
-        if (this.audioContext.state === "suspended") {
-            this.audioContext.resume();
-        }
         // play the audio
         const audioSource = this.audioContext.createBufferSource();
         audioSource.buffer = a.audioBuffer;
@@ -306,6 +303,12 @@ class Sound {
     playRandomAudio() {
         const i = Math.floor(Math.random() * this.audios.length);
         this.playAudio(this.audios[i].name);
+    }
+
+    initAction() {
+        if (this.audioContext.state === "suspended") {
+            this.audioContext.resume();
+        }
     }
 }
 
@@ -397,12 +400,13 @@ class Visuals {
         const width = 128;
         const height = 128;
         const image = new Image();
-        image.onload = checkLoadedFiles;
-        image.src = `./images/${filename}`;
 
-        console.log('loaded image: ' + name + ' / ' + filename);
         const w = new ImageWrapper(name, image, width, height);
         this.images.push(w);
+
+        image.onload = checkLoadedFiles;
+        image.src = `./images/${filename}`;
+        console.log('loaded image: ' + name + ' / ' + filename);
     }
 
     /**
@@ -418,14 +422,46 @@ class Visuals {
     }
 }
 
+class Misc {
+    firstInteractionAbortController;
+    constructor() {
+        this.firstInteractionAbortController = new AbortController();
+    }
+
+    /**
+     * @param {Sound} sound
+     */
+    registerActionsForFirstInteraction(sound) {
+        const actions = () => {
+            console.log('executing logic after first user interaction');
+            this.unregisterActions();
+            sound.initAction();
+        };
+
+        const options = { signal: this.firstInteractionAbortController.signal, once: true };
+
+        // interaction could be any input: click, touch, key, gamepad
+        for (const e of ['gamepadconnected', 'click', 'touchstart']) {
+            window.addEventListener(e, actions, options);
+        };
+    }
+
+    unregisterActions() {
+        this.firstInteractionAbortController.abort();
+    }
+}
+
 const gameState = new GameState();
+const sound = new Sound();
+const visuals = new Visuals();
+
+const misc = new Misc();
+misc.registerActionsForFirstInteraction(sound);
 
 gameState.chickens.push(new Chicken(new Point(display.width / 2, display.height / 2)));
 
-const sound = new Sound();
 sound.loadAudio('chicken-cluck.ogg', 'cluck');
 
-const visuals = new Visuals();
 visuals.loadImage('huhn', 'huhn.svg');
 visuals.loadImage('huhnMoving1', 'huhn-moving1.svg');
 visuals.loadImage('huhnMoving2', 'huhn-moving2.svg');
@@ -450,14 +486,20 @@ function checkLoadedFiles() {
 }
 
 function init() {
-    // seems like touch events always also generate a mousedown event, so we
-    // don't need the touch event
-    //TODO: or do we?
+    // use pointer events to cover mouse, touch, pen etc.
+    const options = { passive: false };
     display.canvas.addEventListener(
-        "click",
+        "pointerdown",
         (e) => {
             handleTapEvent(e.clientX, e.clientY);
-        }, false
+        }, options
+    );
+    // prevent emulated mouse events (don't know if that really works)
+    display.canvas.addEventListener(
+        "pointermove",
+        (e) => {
+            e.preventDefault();
+        }, options
     );
 
     // quick-fix for small children not being able to play well on touchpads.
@@ -488,8 +530,12 @@ function init() {
     );
 
     // adjust canvas size in case of window resizes
+    let resizeTimeout;
     window.addEventListener("resize", (_e) => {
-        display.adjustCanvasDimensions();
+        clearTimeout(resizeTimeout);
+        resizeTimeout = setTimeout(() => {
+            display.adjustCanvasDimensions();
+        }, 100);
     }, false);
 
     gameState.gameInitialisedTimestamp = Date.now();
